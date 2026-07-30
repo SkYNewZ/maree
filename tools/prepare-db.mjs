@@ -5,7 +5,7 @@
 // Usage: node tools/prepare-db.mjs [--source=<path>] [--out=<path>] [--zones=1,2,3,5]
 
 import { DatabaseSync } from 'node:sqlite'
-import { readFileSync, mkdirSync, rmSync, existsSync } from 'node:fs'
+import { readFileSync, mkdirSync, rmSync, renameSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { verifyDatabase } from './verify-db.mjs'
 import { clean, parseRange } from './lib/text.mjs'
@@ -45,13 +45,17 @@ function sourceUrl(scientificName, commonName, id) {
 console.log(`source: ${SOURCE}`)
 console.log(`zones:  ${ZONES.join(', ')}`)
 
-rmSync(OUT, { force: true })
+// Built beside the target and moved in only once verified. Written in place, a
+// throw mid-transaction would leave a truncated maree.db exactly where xcodebuild
+// embeds it, and nothing at runtime would notice.
+const TMP = `${OUT}.tmp`
+rmSync(TMP, { force: true })
 mkdirSync(dirname(OUT), { recursive: true })
 
 // node:sqlite enables foreign keys by default; the app opens maree.db without
 // them, and sections/photos are inserted before their species row. verify-db.mjs
 // checks referential integrity explicitly instead.
-const db = new DatabaseSync(OUT, { enableForeignKeyConstraints: false })
+const db = new DatabaseSync(TMP, { enableForeignKeyConstraints: false })
 db.exec(readFileSync(new URL('./lib/schema.sql', import.meta.url), 'utf8'))
 db.exec(`ATTACH '${SOURCE.replace(/'/g, "''")}' AS src`)
 db.exec('BEGIN')
@@ -226,11 +230,13 @@ db.exec("INSERT INTO speciesSearch(speciesSearch) VALUES ('optimize')")
 db.exec('VACUUM')
 db.close()
 
-const { ok, problems, stats } = verifyDatabase(OUT)
+const { ok, problems, stats } = verifyDatabase(TMP)
 console.log(stats)
 if (!ok) {
   console.error('VERIFICATION FAILED:')
   for (const p of problems) console.error(`  - ${p}`)
+  rmSync(TMP, { force: true })
   process.exit(1)
 }
+renameSync(TMP, OUT)
 console.log(`wrote ${OUT} (DORIS base dated ${dorisDate})`)
