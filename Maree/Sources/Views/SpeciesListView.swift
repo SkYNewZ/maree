@@ -10,6 +10,7 @@ struct SpeciesListView: View {
         Group {
             if species.isEmpty {
                 ContentUnavailableView("Aucune espèce", systemImage: "magnifyingglass", description: Text(emptyMessage))
+                    .background(Theme.paper)
             } else {
                 List(species) { item in
                     NavigationLink(value: Route.species(item.id)) {
