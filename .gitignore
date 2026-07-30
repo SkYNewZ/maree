@@ -12,3 +12,6 @@ xcuserdata/
 
 # macOS
 .DS_Store
+
+# Session pid lock written by the scheduled-tasks plugin
+.claude/scheduled_tasks.lock
