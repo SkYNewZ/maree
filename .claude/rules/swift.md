@@ -11,7 +11,12 @@ adaptées au projet (voir arbitrage tests en fin de fichier).
 - `@Observable` plutôt que `ObservableObject`. `async/await` partout, jamais de
   completion handlers.
 - `guard` pour les sorties anticipées. Types valeur (`struct`) par défaut.
-- Erreurs typées via `LocalizedError`, jamais de `catch` muet.
+- Jamais de `catch` muet. `LocalizedError` seulement si un texte est réellement affiché
+  à l'utilisateur — sinon un `Error` nu suffit, le reste est de la cérémonie.
+- Sous *Approachable Concurrency*, un `nonisolated async` **hérite de l'isolation de
+  l'appelant** : il ne quitte pas l'acteur principal. Pour sortir un travail bloquant
+  (E/S fichier, énumération de répertoire, décodage en masse), il faut `@concurrent
+  nonisolated`. Capturer une valeur dans un `Task { }` ne change rien à son isolation.
 - Nommage : Apple API Design Guidelines (clarté au point d'appel, pas d'abréviations).
 
 ## SwiftUI

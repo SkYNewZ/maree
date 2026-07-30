@@ -21,12 +21,14 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
   1. `node tools/prepare-db.mjs` — écrit `Maree/Resources/maree.db` (SQLite + FTS5,
      ~19 Mo, gitignoré, régénéré à chaque run). Vérifier : `node tools/verify-db.mjs`.
   2. `cd Maree && xcodegen generate` — (re)génère `Maree.xcodeproj` depuis `project.yml`.
-- Build/test : `cd Maree && xcodebuild test -scheme MareeTests -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
-  (43 tests) ; ou `/ios-simulator-skill` pour build, lancement et pilotage du simulateur.
+- Build/test : `cd Maree && xcodebuild test -scheme MareeTests -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` ;
+  ou `/ios-simulator-skill` pour build, lancement et pilotage du simulateur.
 - Tests du pipeline : `node --test 'tools/lib/*.test.mjs'` (la forme répertoire
   `node --test tools/lib/` est cassée sur ce build Node 26.5, échoue en `MODULE_NOT_FOUND`).
 - Publier les vignettes : `node tools/generate-thumbs.mjs` (idempotent, `--force` pour
-  republier). Déjà exécuté pour le pack v1 — voir « Données DORIS » ci-dessous.
+  republier). **Ce script écrit dans le bucket de production** : déjà exécuté pour le pack
+  v1, il n'y a aucune raison de le relancer sans intention explicite. Pour l'exercer, passer
+  un `--limit` (validé depuis qu'un `--limit=0` falsy a renvoyé ~100 objets par accident).
 
 ## Données DORIS — particularités
 
@@ -43,8 +45,9 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
   consomme).
 - Pack de vignettes publié : 2 821 objets, ~16 Ko en moyenne, ~46 Mo au total. 16
   espèces n'ont aucune image dans le bucket (`photoCount` sans objet derrière, gap
-  pré-existant côté PWA, hors périmètre v1) — l'app les enregistre dans un registre
-  local (`unavailable-thumbnails.json`) pour ne plus jamais les retenter.
+  pré-existant côté PWA, hors périmètre v1) — `ImageStore` les enregistre dans
+  `unavailable.json`, à côté du cache, pour ne plus jamais les retenter, y compris sur
+  le chemin d'affichage. « Revérifier les images » dans Réglages efface ce registre.
 - Filtre Europe : zones `1,2,3,5` → 2 837 fiches. Les 15 titres de `sectionFiche`
   forment une enum fermée.
 
@@ -67,6 +70,9 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
 
 - Le dossier `Marée` est en NFD (accent) : **target, scheme et bundle id restent
   ASCII (`Maree`)**, `CFBundleDisplayName = Marée`. Toujours quoter les chemins.
+- Le clavier matériel du simulateur est en **AZERTY** : saisir du texte via
+  `simctl`/MCP tape `q` pour `a` et `,` pour `m`. Compenser en envoyant la lettre de la
+  position QWERTY (`;elosirq` produit `melosira`), ou vérifier ce qui s'est écrit.
 - Free provisioning : profil 7 jours — dev au simulateur, l'iPhone n'est qu'une
   validation ponctuelle. Un seul bundle identifier (quota 10 App IDs / 7 jours).
   App Groups, push, CloudKit, widgets : indisponibles, ne pas en proposer.
