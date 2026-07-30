@@ -97,6 +97,30 @@ export function verifyDatabase(path) {
   `)
   if (badPhylum > 0) problems.push(`${badPhylum} phylumId are neither a root nor a root's child`)
 
+  // The check above alone can't catch a root leaking in as another group's phylum:
+  // a root and its own depth-1 child both satisfy "root or root's child" equally.
+  // That leak is exactly the failure mode the climb CTE's step-ordering in
+  // prepare-db.mjs exists to prevent, so assert the invariant directly:
+  // - a root is always its own phylum;
+  // - anything else must resolve to a depth-1 group, never straight to a root.
+  const rootNotOwnPhylum = count(`
+    SELECT COUNT(*) AS c FROM taxonGroup WHERE parentId IS NULL AND phylumId != id
+  `)
+  if (rootNotOwnPhylum > 0) problems.push(`${rootNotOwnPhylum} root groups are not their own phylum`)
+
+  const rootLeakedAsPhylum = count(`
+    SELECT COUNT(*) AS c FROM (
+      SELECT phylumId FROM taxonGroup WHERE parentId IS NOT NULL
+      UNION ALL
+      SELECT s.phylumId FROM species s JOIN taxonGroup g ON g.id = s.groupId WHERE g.parentId IS NOT NULL
+    ) used
+    JOIN taxonGroup phylum ON phylum.id = used.phylumId
+    WHERE phylum.parentId IS NULL
+  `)
+  if (rootLeakedAsPhylum > 0) {
+    problems.push(`${rootLeakedAsPhylum} non-root groups or species have a root as their phylum instead of the depth-1 ancestor`)
+  }
+
   db.close()
   return { ok: problems.length === 0, problems, stats }
 }
