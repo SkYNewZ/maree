@@ -7,6 +7,7 @@ CREATE TABLE species (
   commonName       TEXT NOT NULL,
   scientificName   TEXT NOT NULL,
   groupId          INTEGER NOT NULL REFERENCES taxonGroup(id),
+  phylumId         INTEGER NOT NULL REFERENCES taxonGroup(id),
   regulated        INTEGER NOT NULL,      -- 0 | 1
   dangerous        INTEGER NOT NULL,      -- 0 | 1
   photoCount       INTEGER NOT NULL,
@@ -44,7 +45,8 @@ CREATE TABLE taxonGroup (
   parentId        INTEGER REFERENCES taxonGroup(id),
   name            TEXT NOT NULL,
   scientificHint  TEXT,
-  speciesCount    INTEGER NOT NULL        -- recursive count within the EU subset
+  speciesCount    INTEGER NOT NULL,       -- recursive count within the EU subset
+  phylumId        INTEGER NOT NULL REFERENCES taxonGroup(id)
 );
 
 CREATE TABLE zone (
@@ -73,6 +75,7 @@ CREATE TABLE meta (
 );
 
 CREATE INDEX species_groupId ON species(groupId);
+CREATE INDEX species_phylumId ON species(phylumId);
 CREATE INDEX species_commonName ON species(commonName);
 CREATE INDEX speciesZone_zoneId ON speciesZone(zoneId);
 CREATE INDEX taxonGroup_parentId ON taxonGroup(parentId);

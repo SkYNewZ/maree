@@ -47,6 +47,8 @@ export function verifyDatabase(path) {
     'section.speciesId': count('SELECT COUNT(*) AS c FROM section WHERE speciesId NOT IN (SELECT id FROM species)'),
     'photo.speciesId': count('SELECT COUNT(*) AS c FROM photo WHERE speciesId NOT IN (SELECT id FROM species)'),
     'species.groupId': count('SELECT COUNT(*) AS c FROM species WHERE groupId NOT IN (SELECT id FROM taxonGroup)'),
+    'species.phylumId': count('SELECT COUNT(*) AS c FROM species WHERE phylumId NOT IN (SELECT id FROM taxonGroup)'),
+    'taxonGroup.phylumId': count('SELECT COUNT(*) AS c FROM taxonGroup WHERE phylumId NOT IN (SELECT id FROM taxonGroup)'),
     'speciesZone.zoneId': count('SELECT COUNT(*) AS c FROM speciesZone WHERE zoneId NOT IN (SELECT id FROM zone)'),
     // Self-references: the pruning steps of prepare-db.mjs can cut a parent loose.
     'taxonGroup.parentId': count('SELECT COUNT(*) AS c FROM taxonGroup WHERE parentId IS NOT NULL AND parentId NOT IN (SELECT id FROM taxonGroup)'),
@@ -85,6 +87,15 @@ export function verifyDatabase(path) {
   if (!db.prepare(`SELECT value FROM meta WHERE key = 'dorisDate'`).get()) {
     problems.push('meta: dorisDate missing')
   }
+
+  // A phylumId must be a root or the child of a root — never a deeper descendant.
+  const badPhylum = count(`
+    SELECT COUNT(*) AS c FROM taxonGroup p
+    WHERE p.id IN (SELECT phylumId FROM taxonGroup UNION SELECT phylumId FROM species)
+      AND p.parentId IS NOT NULL
+      AND p.parentId NOT IN (SELECT id FROM taxonGroup WHERE parentId IS NULL)
+  `)
+  if (badPhylum > 0) problems.push(`${badPhylum} phylumId are neither a root nor a root's child`)
 
   db.close()
   return { ok: problems.length === 0, problems, stats }

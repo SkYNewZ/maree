@@ -96,12 +96,14 @@ function scientificHint(description) {
   return match ? match[1].trim() : null
 }
 
+// phylumId is provisional here (the group's own id, as if it were its own
+// phylum) and corrected below once the tree is fully loaded.
 const insertGroup = db.prepare(
-  'INSERT INTO taxonGroup (id, parentId, name, scientificHint, speciesCount) VALUES (?, ?, ?, ?, 0)'
+  'INSERT INTO taxonGroup (id, parentId, name, scientificHint, speciesCount, phylumId) VALUES (?, ?, ?, ?, 0, ?)'
 )
 for (const g of groups) {
   const parentId = g.groupePere_id === 1 ? null : g.groupePere_id
-  insertGroup.run(g._id, parentId, clean(g.nomGroupe), scientificHint(g.descriptionGroupe))
+  insertGroup.run(g._id, parentId, clean(g.nomGroupe), scientificHint(g.descriptionGroupe), g._id)
 }
 
 // ── Per-fiche content ────────────────────────────────────────────────────────
@@ -118,10 +120,12 @@ const ranksOf = db.prepare(`
 `)
 const zonesOf = db.prepare('SELECT ZoneGeographique_id FROM src.fiches_ZonesGeographiques WHERE Fiche_id = ?')
 
+// phylumId is provisional here (the species' own groupId) and corrected below
+// once taxonGroup.phylumId has been computed.
 const insertSpecies = db.prepare(`
-  INSERT INTO species (id, commonName, scientificName, groupId, regulated, dangerous,
+  INSERT INTO species (id, commonName, scientificName, groupId, phylumId, regulated, dangerous,
                        photoCount, depthMin, depthMax, tempMin, tempMax, updatedAt, sourceUrl)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 const insertSection = db.prepare('INSERT OR REPLACE INTO section (speciesId, kind, text) VALUES (?, ?, ?)')
 const insertPhoto = db.prepare('INSERT INTO photo (speciesId, position, caption) VALUES (?, ?, ?)')
@@ -161,7 +165,7 @@ for (const f of fiches) {
   })
 
   insertSpecies.run(
-    id, commonName, scientificName, f.groupe_id,
+    id, commonName, scientificName, f.groupe_id, f.groupe_id,
     pictos.has(PICTO_REGULATED) ? 1 : 0,
     pictos.has(PICTO_DANGEROUS) ? 1 : 0,
     photos.length,
@@ -205,6 +209,29 @@ db.exec(`
     WHERE s.groupId IN (SELECT groupId FROM descendant WHERE rootId = taxonGroup.id)
   )
 `)
+
+// The phylum is the depth-1 ancestor — the level the UI colours and iconifies.
+// A species attached straight to a root (AUTRES has no children) is its own phylum.
+// climb walks from each group toward the root, one row per step. For a group at
+// depth >= 1 the WHERE below matches twice — once at the depth-1 ancestor, once
+// at the root itself — so `steps` breaks the tie deterministically: the first
+// match reached while climbing (fewest steps) is always the depth-1 ancestor.
+db.exec(`
+  WITH RECURSIVE climb(id, cur, parent, steps) AS (
+    SELECT id, id, parentId, 0 FROM taxonGroup
+    UNION ALL
+    SELECT c.id, g.id, g.parentId, c.steps + 1 FROM climb c JOIN taxonGroup g ON g.id = c.parent
+  )
+  UPDATE taxonGroup SET phylumId = (
+    SELECT cur FROM climb
+    WHERE climb.id = taxonGroup.id AND (climb.parent IS NULL OR climb.parent IN (
+      SELECT id FROM taxonGroup WHERE parentId IS NULL
+    ))
+    ORDER BY steps LIMIT 1
+  )
+`)
+db.exec(`UPDATE species SET phylumId = (SELECT phylumId FROM taxonGroup WHERE id = species.groupId)`)
+
 db.exec('DELETE FROM taxonGroup WHERE speciesCount = 0')
 // Ancestors of a surviving zone are kept even when no species points at them
 // directly, otherwise the navigation tree loses its intermediate nodes.
