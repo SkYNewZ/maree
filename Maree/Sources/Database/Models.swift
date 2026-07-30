@@ -36,6 +36,7 @@ struct Species: Codable, FetchableRecord, TableRecord, Identifiable, Hashable {
     var commonName: String
     var scientificName: String
     var groupId: Int
+    var phylumId: Int
     var regulated: Bool
     var dangerous: Bool
     var photoCount: Int
@@ -85,6 +86,7 @@ struct TaxonGroup: Codable, FetchableRecord, TableRecord, Identifiable, Hashable
     static let databaseTableName = "taxonGroup"
     var id: Int
     var parentId: Int?
+    var phylumId: Int
     var name: String
     var scientificHint: String?
     var speciesCount: Int
