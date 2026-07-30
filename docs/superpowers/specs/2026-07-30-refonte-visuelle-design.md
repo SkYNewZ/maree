@@ -52,36 +52,45 @@ et sont indistinguables là où il faudrait distinguer.
 Chaque groupe de niveau 2 reçoit une couleur et une icône ; les 160 groupes descendants
 en héritent. Une table de 18 lignes, jamais 160.
 
-| Embranchement | Espèces | Base (trait, filet) | Teinte (fond de pastille) | Icône |
-|---|---|---|---|---|
-| Mollusques | 597 | `#306E9B` | `#D9E7F1` | coquille de gastéropode en spirale |
-| Vertébrés | 541 | `#303F9B` | `#D9DCF1` | poisson de profil |
-| Arthropodes | 323 | `#57309B` | `#E2D9F1` | crevette |
-| Éponges ou Spongiaires | 210 | `#8C309B` | `#EED9F1` | éponge tubulaire |
-| Cnidaires | 205 | `#9B3074` | `#F1D9E8` | méduse |
-| Vers | 151 | `#9B303F` | `#F1D9DC` | spirographe |
-| Lophophorates | 150 | `#9B5730` | `#F1E2D9` | bryozoaire en éventail |
-| Procordés | 145 | `#836D29` | `#F1EBD9` | ascidie |
-| Échinodermes | 90 | `#697424` | `#EEF1D9` | oursin |
-| Cténaires | 14 | `#437C27` | `#E1F1D9` | cténophore ovale strié |
-| Animaux unicellulaires | 9 | `#287F4C` | `#D9F1E3` | foraminifère |
-| Autres groupes mineurs | 5 | `#277C74` | `#D9F1EF` | trois points |
-| Algues | 247 | `#277C5C` | `#D9F1E8` | fronde d'algue |
-| Plantes à fleurs | 115 | `#517825` | `#E6F1D9` | posidonie en touffe |
-| Diatomées et autre phytoplancton | 15 | `#2A7887` | `#D9EDF1` | diatomée hexagonale |
-| Fougères aquatiques | 1 | `#287F34` | `#D9F1DC` | crosse de fougère |
-| Champignons et Lichens | 9 | `#97632F` | `#F1E5D9` | lichen ramifié |
-| Procaryotes | 8 | `#74309B` | `#E8D9F1` | bactérie en bâtonnet |
+| Embranchement | Espèces | Base (trait, filet) | Teinte (fond de pastille) | SF Symbol | Justesse |
+|---|---|---|---|---|---|
+| Mollusques | 597 | `#306E9B` | `#D9E7F1` | `fossil.shell` | juste |
+| Vertébrés | 541 | `#303F9B` | `#D9DCF1` | `fish` | juste |
+| Arthropodes | 323 | `#57309B` | `#E2D9F1` | `ant` | approximatif |
+| Éponges ou Spongiaires | 210 | `#8C309B` | `#EED9F1` | `circles.hexagonpath` | évocateur (porosité) |
+| Cnidaires | 205 | `#9B3074` | `#F1D9E8` | `umbrella` | évocateur (ombrelle) |
+| Vers | 151 | `#9B303F` | `#F1D9DC` | `hurricane` | évocateur (spirographe) |
+| Lophophorates | 150 | `#9B5730` | `#F1E2D9` | `circles.hexagongrid` | juste (colonie de zoïdes) |
+| Procordés | 145 | `#836D29` | `#F1EBD9` | `capsule.portrait` | juste (tunicier) |
+| Échinodermes | 90 | `#697424` | `#EEF1D9` | `allergens` | juste (radial épineux) |
+| Cténaires | 14 | `#437C27` | `#E1F1D9` | `oval` | approximatif |
+| Animaux unicellulaires | 9 | `#287F4C` | `#D9F1E3` | `microbe` | juste |
+| Autres groupes mineurs | 5 | `#277C74` | `#D9F1EF` | `circle.grid.cross` | neutre, volontairement |
+| Algues | 247 | `#277C5C` | `#D9F1E8` | `leaf` | approximatif |
+| Plantes à fleurs | 115 | `#517825` | `#E6F1D9` | `camera.macro` | juste (c'est la fleur d'Apple) |
+| Diatomées et autre phytoplancton | 15 | `#2A7887` | `#D9EDF1` | `hexagon` | juste (frustule) |
+| Fougères aquatiques | 1 | `#287F34` | `#D9F1DC` | `laurel.leading` | évocateur (fronde) |
+| Champignons et Lichens | 9 | `#97632F` | `#F1E5D9` | `point.3.connected.trianglepath.dotted` | évocateur (ramification) |
+| Procaryotes | 8 | `#74309B` | `#E8D9F1` | `capsule` | juste (bacille) |
+
+Les 18 noms sont **vérifiés présents** dans le catalogue du système
+(`CoreGlyphs.bundle/name_availability.plist`, 9 184 symboles). La colonne « justesse »
+est honnête : quatre sont des approximations assumées. SF Symbols n'a ni oursin ni
+éponge ni bryozoaire, et le choix de la v1 est de ne pas payer un dessin sur mesure
+pour un résultat qui resterait générique.
 
 Toutes les bases tiennent AA sur le crème (4,6:1 au minimum). Les teintes sont espacées
 de sorte que les groupes **affichés ensemble** soient distincts : les 12 enfants
 d'ANIMAUX font le tour complet de la roue, et les 4 végétaux sont séparés (vert,
 olive, bleu-vert, vert franc) au lieu de se confondre.
 
-**Format des icônes** : SVG monochromes, trait uniforme, grille de 24 px, un fichier
-par icône dans un catalogue d'assets, rendus en `Image(decorative:)` et teintés par
-code. Pas de variante sombre : seule la teinte appliquée change. Les 18 dessins sont
-**produits dans le cadre de ce chantier** — ils n'existent nulle part aujourd'hui.
+**Format des icônes** : SF Symbols, via `Image(systemName:)`, teintés par code depuis la
+table. Aucun fichier à embarquer, aucune variante sombre à maintenir, et Dynamic Type
+comme VoiceOver fonctionnent sans travail supplémentaire. Les icônes sont décoratives —
+elles doublent une information déjà écrite en toutes lettres, donc `accessibilityHidden`.
+
+Des dessins sur mesure avaient été envisagés puis écartés : ils auraient été génériques
+eux aussi, au prix de 18 fichiers à produire et à maintenir.
 
 **Où elles apparaissent** : pastille ronde dans les lignes d'Explorer, pastille dans
 l'en-tête de fiche à côté du nom de groupe, et en filigrane large dans l'état vide d'un
