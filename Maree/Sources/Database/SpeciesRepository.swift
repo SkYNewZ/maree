@@ -52,9 +52,11 @@ nonisolated struct SpeciesRepository {
     func species(inGroup groupId: Int) throws -> [Species] {
         try reader.read { db in
             try Species.fetchAll(db, sql: """
+                -- UNION, not UNION ALL: a cycle in the DORIS group graph would
+                -- turn a browse tap into an unbounded query.
                 WITH RECURSIVE subtree(id) AS (
                   SELECT ?
-                  UNION ALL
+                  UNION
                   SELECT g.id FROM taxonGroup g JOIN subtree s ON g.parentId = s.id
                 )
                 SELECT * FROM species WHERE groupId IN (SELECT id FROM subtree)

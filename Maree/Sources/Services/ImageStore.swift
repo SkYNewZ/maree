@@ -56,6 +56,14 @@ final class ImageStore {
         self.session = session
         memory.countLimit = 200
         try? FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true)
+
+        // Up to a gigabyte of images that can always be fetched again has no place
+        // in an iCloud backup. Set on every launch: the flag is per-file and a
+        // directory created by an older build would never have carried it.
+        var url = self.directory
+        var values = URLResourceValues()
+        values.isExcludedFromBackup = true
+        try? url.setResourceValues(values)
     }
 
     func cachedFileExists(for kind: ImageKind) -> Bool {

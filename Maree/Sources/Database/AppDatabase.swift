@@ -49,7 +49,11 @@ struct AppDatabase {
         do {
             return try AppDatabase()
         } catch {
-            fatalError(error.localizedDescription)
+            // `localizedDescription` is only the `errorDescription` half; the half
+            // that says what to do about it — « Exécutez node tools/prepare-db.mjs »
+            // — would be dropped exactly when it is needed.
+            let reason = (error as? LocalizedError)?.failureReason
+            fatalError([error.localizedDescription, reason].compactMap(\.self).joined(separator: " "))
         }
     }
 }
