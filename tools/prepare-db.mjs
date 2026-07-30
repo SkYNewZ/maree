@@ -218,7 +218,10 @@ db.exec(`
   DELETE FROM zone WHERE id NOT IN (SELECT id FROM kept)
 `)
 
-const dorisDate = db.prepare('SELECT dateBase FROM src.dorisDB_metadata LIMIT 1').get()?.dateBase ?? 'unknown'
+// The source stores « 07/08/2025  14:17 »: Réglages shows this verbatim, and the
+// time of day the DORIS export ran is not something a diver asked for.
+const dorisDate = (db.prepare('SELECT dateBase FROM src.dorisDB_metadata LIMIT 1').get()?.dateBase ?? 'unknown')
+  .trim().split(/\s+/)[0]
 const insertMeta = db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)')
 insertMeta.run('dorisDate', dorisDate)
 insertMeta.run('generatedAt', new Date().toISOString())
