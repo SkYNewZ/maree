@@ -11,8 +11,9 @@ l'apprentissage du développement iOS.
 ## Contenu
 
 - 2 837 fiches espèces (zones Europe : côtes françaises, Atlantique NE/NO, Méditerranée),
-  extraites de la base DORIS et embarquées dans l'app (`maree.db`, SQLite + FTS5, ~28 Mo).
-- Vignettes téléchargées automatiquement au premier lancement (~40 Mo) ; photos plein
+  extraites de la base DORIS et embarquées dans l'app (`maree.db`, SQLite + FTS5, ~19 Mo).
+- Vignettes téléchargées automatiquement au premier lancement (~46 Mo, 2 821 images ;
+  15 fiches sans photo dans le bucket source affichent un espace réservé) ; photos plein
   format à la demande avec cache persistant et préchargement « préparer une sortie ».
 
 ## Structure
@@ -21,13 +22,32 @@ l'apprentissage du développement iOS.
 |---|---|
 | `docs/PRD.md` | Périmètre v1 validé — la référence produit |
 | `tools/` | Pipeline de préparation des données (`prepare-db`, `generate-thumbs`) |
-| `Maree/` | Projet Xcode (target ASCII `Maree`, affiché « Marée ») |
+| `Maree/` | Projet Xcode (target ASCII `Maree`, affiché « Marée ») — `project.yml` source de vérité, `.xcodeproj` généré |
 
 ## Prérequis
 
 - Xcode 26.6+, iOS 26 SDK.
+- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`) et
+  Node.js (pour le pipeline de données).
 - Signature en compte Apple gratuit (free provisioning) : profil 7 jours, dev au
   simulateur, déploiement iPhone ponctuel. Aucune publication App Store.
+
+## Démarrer
+
+Le dépôt ne contient ni la base embarquée ni le projet Xcode : les deux sont générés
+et gitignorés.
+
+```bash
+node tools/prepare-db.mjs      # écrit Maree/Resources/maree.db (~19 Mo)
+cd Maree && xcodegen generate  # écrit Maree.xcodeproj depuis project.yml
+open Maree.xcodeproj           # puis Cmd+R dans le simulateur
+```
+
+`prepare-db.mjs` lit par défaut `~/src/skynewz/doris-pwa/DorisAndroid.db` (base source
+DORIS, non incluse au dépôt — projet personnel) ; passer `--source=<chemin>` sinon.
+
+Les vignettes se téléchargent au premier lancement de l'app (voir `tools/generate-thumbs.mjs`
+pour republier le pack sur le bucket ; déjà fait pour la v1, inutile en usage normal).
 
 ## Données et droits
 
