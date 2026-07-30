@@ -19,7 +19,7 @@ propriétaire. Le coût d'apprentissage du natif est un but, pas un effet de bor
 ## 2. Objectifs
 
 - 100 % du texte des fiches consultable hors ligne, immédiatement après installation.
-- Une vignette par fiche disponible hors ligne après le premier lancement (pack ~40 Mo).
+- Une vignette par fiche disponible hors ligne après le premier lancement (pack ≈ 43 Mo).
 - Recherche instantanée (nom commun, scientifique, autres dénominations, accents ignorés).
 - Navigation par groupes taxonomiques et par zones géographiques.
 - Favoris et « préparer une sortie » (préchargement explicite de photos plein format).
@@ -46,9 +46,10 @@ Sous-ensemble **Europe** de la base DORIS : zones 1 (côtes françaises), 2 (Atl
    - tables conservées : fiches, sections, photos (titres/légendes), groupes (arbre,
      176 nœuds), zones, classification, dénominations ;
    - auto-vérification en fin d'exécution (comptages, absence de `{{` résiduel, FTS peuplée).
-2. **`generate-thumbs`** : télécharge la variante `_image600` de la première photo de
-   chaque fiche, réduit à ~400 px (~15 Ko), publie dans le bucket sous
-   `images/{numeroFiche}/0_maree.jpg`. Idempotent (skip si présent).
+2. **`generate-thumbs`** : télécharge la première photo de chaque fiche, réduit à
+   **400 px, HEIC qualité 50** (15 Ko de moyenne, mesuré sur 39 échantillons), publie
+   dans le bucket sous `images/{numeroFiche}/0_maree.heic` → pack ≈ **43 Mo**.
+   Idempotent (skip si présent).
 
 ### 3.3 Sources à l'exécution
 
@@ -57,7 +58,7 @@ Sous-ensemble **Europe** de la base DORIS : zones 1 (côtes françaises), 2 (Atl
   avec le redéploiement hebdomadaire imposé par le profil gratuit).
 - **Images** : bucket public Backblaze `https://s3.us-east-005.backblazeb2.com/doris-production`.
   Chemins déductibles de la base : `images/{numeroFiche}/{n}.jpg` (plein format, indices
-  alignés sur `photoFiche`, vérifié) et `0_maree.jpg` (vignette). Les JSON du bucket ne
+  alignés sur `photoFiche`, vérifié) et `0_maree.heic` (vignette). Les JSON du bucket ne
   sont pas utilisés.
 
 ## 4. User stories
@@ -74,11 +75,11 @@ Sous-ensemble **Europe** de la base DORIS : zones 1 (côtes françaises), 2 (Atl
 
 ### US-002 : Pipeline `generate-thumbs`
 **Description :** En tant que mainteneur, je veux publier une vignette réduite par fiche
-dans le bucket pour que le pack hors-ligne initial reste léger (~40 Mo).
+dans le bucket pour que le pack hors-ligne initial reste léger (≈ 43 Mo).
 
 **Critères d'acceptation :**
-- [ ] 2 837 vignettes ~400 px publiées sous `images/{numeroFiche}/0_maree.jpg`
-- [ ] Poids moyen ≤ 20 Ko ; re-exécution = 0 upload (idempotence)
+- [ ] 2 837 vignettes 400 px HEIC q50 publiées sous `images/{numeroFiche}/0_maree.heic`
+- [ ] Poids moyen ≤ 20 Ko (15 Ko mesuré) ; re-exécution = 0 upload (idempotence)
 
 ### US-003 : Projet Xcode + couche base
 **Description :** En tant que développeur, je veux un projet `Maree` (iOS 26, Swift 6,
@@ -145,7 +146,7 @@ seules au premier lancement pour que les listes fonctionnent hors ligne sans act
 ma part.
 
 **Critères d'acceptation :**
-- [ ] Téléchargement auto du pack (~40 Mo) au premier lancement, app utilisable pendant
+- [ ] Téléchargement auto du pack (≈ 43 Mo) au premier lancement, app utilisable pendant
 - [ ] Progression visible dans Réglages ; reprise après interruption (les fichiers présents ne sont pas retéléchargés)
 - [ ] Cache disque dans Application Support (jamais purgé par iOS ni par l'app)
 - [ ] Photos plein format chargées à la demande puis conservées
