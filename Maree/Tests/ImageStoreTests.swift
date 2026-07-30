@@ -42,13 +42,13 @@ struct ImageStoreTests {
     }
 
     @Test("la taille du cache additionne les fichiers présents")
-    func cacheSizeAddsUpFiles() throws {
+    func cacheSizeAddsUpFiles() async throws {
         let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
         let store = ImageStore(directory: directory)
-        #expect(store.cacheSizeInBytes() == 0)
+        #expect(await store.cacheSizeInBytes() == 0)
         try Data(repeating: 0, count: 300).write(to: directory.appending(path: "t-1.heic"))
         try Data(repeating: 0, count: 700).write(to: directory.appending(path: "p-1-0.jpg"))
-        #expect(store.cacheSizeInBytes() == 1000)
+        #expect(await store.cacheSizeInBytes() == 1000)
         try? FileManager.default.removeItem(at: directory)
     }
 

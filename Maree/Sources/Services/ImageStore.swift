@@ -68,15 +68,17 @@ final class ImageStore {
         if let cached = memory.object(forKey: key) { return cached }
         if let existing = inFlight[kind] { return await existing.value }
 
+        // Only the file I/O leaves the main actor; decoding stays on it, so `UIImage`
+        // never crosses an isolation boundary.
         let task = Task<UIImage?, Never> { [directory] in
             let url = directory.appending(path: kind.cacheFileName)
-            if let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
+            if let data = await Self.readFile(url), let image = UIImage(data: data) {
                 return image
             }
             guard let data = try? await Self.fetch(kind), let image = UIImage(data: data) else {
                 return nil
             }
-            try? data.write(to: url, options: .atomic)
+            try? await Self.writeFile(data, to: url)
             return image
         }
         inFlight[kind] = task
@@ -91,10 +93,13 @@ final class ImageStore {
     func download(_ kind: ImageKind) async throws {
         guard !cachedFileExists(for: kind) else { return }
         let data = try await Self.fetch(kind)
-        try data.write(to: fileURL(for: kind), options: .atomic)
+        try await Self.writeFile(data, to: fileURL(for: kind))
     }
 
-    func cacheSizeInBytes() -> Int64 {
+    /// Enumerating a few thousand files takes long enough to drop frames, hence
+    /// `@concurrent`: `nonisolated async` alone would run on the caller's actor.
+    @concurrent
+    nonisolated func cacheSizeInBytes() async -> Int64 {
         let keys: Set<URLResourceKey> = [.fileSizeKey]
         guard let files = try? FileManager.default.contentsOfDirectory(
             at: directory, includingPropertiesForKeys: Array(keys)
@@ -106,6 +111,19 @@ final class ImageStore {
 
     private func fileURL(for kind: ImageKind) -> URL {
         directory.appending(path: kind.cacheFileName)
+    }
+
+    /// Disk access, off the main actor. Files are up to a few MB and `download(_:)`
+    /// is called thousands of times in a row by the prefetch, so a main-thread write
+    /// here would stall the UI for the whole run.
+    @concurrent
+    private nonisolated static func readFile(_ url: URL) async -> Data? {
+        try? Data(contentsOf: url)
+    }
+
+    @concurrent
+    private nonisolated static func writeFile(_ data: Data, to url: URL) async throws {
+        try data.write(to: url, options: .atomic)
     }
 
     /// Only a 200 body is ever returned, so a 404 page is never written to the cache

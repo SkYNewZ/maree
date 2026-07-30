@@ -24,6 +24,10 @@ struct RemoteImage: View {
             }
         }
         .task(id: kind) {
+            // A paged gallery reuses one view across positions: without this reset the
+            // previous species' photo would stay on screen until the new one resolves.
+            image = nil
+            didAttempt = false
             image = await store.image(for: kind)
             didAttempt = true
         }
