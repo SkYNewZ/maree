@@ -18,8 +18,11 @@ scaffoldé — mettre à jour ce fichier (commandes de build/test) dès qu'il ex
 
 - Build/test : via `xcodebuild -scheme Maree` une fois le projet créé ; utiliser
   `/ios-simulator-skill` pour build, lancement et pilotage du simulateur.
-- Pipeline données : `tools/prepare-db` (DorisAndroid.db → maree.db) et
-  `tools/generate-thumbs` (vignettes → bucket) — à créer, voir PRD §3.2.
+- Générer la base embarquée : `node tools/prepare-db.mjs` (écrit `Maree/Resources/maree.db`,
+  ~19 Mo, non commité — obligatoire avant tout build). Vérifier : `node tools/verify-db.mjs`.
+- Tests du pipeline : `node --test 'tools/lib/*.test.mjs'` (la forme répertoire
+  `node --test tools/lib/` est cassée sur ce build Node 26.5).
+- Publier les vignettes : `node tools/generate-thumbs.mjs` — à créer, voir PRD §3.2.
 
 ## Données DORIS — particularités
 
