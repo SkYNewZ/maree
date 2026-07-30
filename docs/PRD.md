@@ -117,7 +117,7 @@ par zone pour identifier une espèce que je ne sais pas nommer.
 identifier et comprendre l'espèce.
 
 **Critères d'acceptation :**
-- [ ] Photo principale, badges (groupe, statut, réglementée/dangereuse), nom commun + scientifique
+- [ ] Photo principale, badges (groupe, réglementée/dangereuse), nom commun + scientifique
 - [ ] Sections dans l'ordre : critères de reconnaissance, distribution + chips de zones, biotope (profondeur/température), description, biologie, noms & origines, espèces ressemblantes, classification, galerie
 - [ ] `ShareLink` vers l'URL doris.ffessm.fr ; bloc attribution FFESSM en pied
 - [ ] Entièrement consultable hors ligne (images absentes → placeholder discret)

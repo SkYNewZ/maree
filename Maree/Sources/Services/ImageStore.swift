@@ -112,8 +112,9 @@ final class ImageStore {
         return image
     }
 
-    /// Downloads to disk without decoding — used by bulk prefetching, where
-    /// holding thousands of decoded images in memory would be pointless.
+    /// Downloads to disk without keeping the decoded image — used by bulk
+    /// prefetching, where holding thousands of them in memory would be pointless.
+    /// `fetch` still decodes once to validate the payload.
     func download(_ kind: ImageKind) async throws {
         guard !cachedFileExists(for: kind) else { return }
         let data = try await Self.fetch(kind, session: session)
@@ -160,7 +161,10 @@ final class ImageStore {
     /// A 404 is told apart from every other failure because it is permanent: bulk
     /// prefetching records it and stops asking, while a 5xx or a dead network must
     /// stay retryable.
-    private static func fetch(_ kind: ImageKind, session: URLSession) async throws -> Data {
+    /// `@concurrent` because the validating decode would otherwise run on the
+    /// caller's actor — thousands of times during a bulk download.
+    @concurrent
+    private nonisolated static func fetch(_ kind: ImageKind, session: URLSession) async throws -> Data {
         let (data, response) = try await session.data(from: kind.remoteURL)
         guard let http = response as? HTTPURLResponse else { throw ImageError.notAvailable }
         guard http.statusCode == 200 else {
