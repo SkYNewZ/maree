@@ -41,7 +41,7 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
   `_id`, vérifié) ; vignettes app sous `images/{numeroFiche}/0_maree.heic` (400 px,
   qualité 50). Ne pas modifier le contenu existant du bucket (la PWA déployée le
   consomme).
-- Pack de vignettes publié : 2 821 objets, ~16 Ko en moyenne, ~46 Mo au total. 15
+- Pack de vignettes publié : 2 821 objets, ~16 Ko en moyenne, ~46 Mo au total. 16
   espèces n'ont aucune image dans le bucket (`photoCount` sans objet derrière, gap
   pré-existant côté PWA, hors périmètre v1) — l'app les enregistre dans un registre
   local (`unavailable-thumbnails.json`) pour ne plus jamais les retenter.

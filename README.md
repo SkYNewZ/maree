@@ -13,7 +13,7 @@ l'apprentissage du développement iOS.
 - 2 837 fiches espèces (zones Europe : côtes françaises, Atlantique NE/NO, Méditerranée),
   extraites de la base DORIS et embarquées dans l'app (`maree.db`, SQLite + FTS5, ~19 Mo).
 - Vignettes téléchargées automatiquement au premier lancement (~46 Mo, 2 821 images ;
-  15 fiches sans photo dans le bucket source affichent un espace réservé) ; photos plein
+  16 fiches sans photo dans le bucket source affichent un espace réservé) ; photos plein
   format à la demande avec cache persistant et préchargement « préparer une sortie ».
 
 ## Structure

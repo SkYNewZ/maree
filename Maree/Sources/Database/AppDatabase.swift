@@ -28,7 +28,7 @@ enum AppDatabaseError: LocalizedError {
 struct AppDatabase {
     /// The one connection the app uses. `@Entry` environment defaults are computed,
     /// so they re-evaluate on every read — without this stored `static let` each
-    /// `@Environment(\.repository)` read would open another queue on the 20 MB file.
+    /// `@Environment(\.repository)` read would open another queue on the 19 MB file.
     static let shared = makeShared()
 
     let reader: DatabaseReader
