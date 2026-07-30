@@ -46,16 +46,43 @@ struct DownloadTests {
     /// 15 species carry a photoCount the bucket has no object for: their thumbnails
     /// 404 forever. Once recorded, they must stop being counted as missing —
     /// otherwise every launch re-requests them and the pack never reads as complete.
+    ///
+    /// Written through `record`, not hand-serialised: what the run writes and what
+    /// the next launch reads have to be the same shape, and asserting the JSON here
+    /// would only restate this test's own assumption about it.
     @Test("une vignette absente du bucket n'est plus recomptée aux lancements suivants")
     func packSkipsKnownUnavailable() throws {
         let directory = makeDirectory()
         let store = ImageStore(directory: directory)
-        // Same file, same format the pack writes after a 404.
-        try JSONEncoder().encode(["t-1911.heic", "t-3022.heic"])
-            .write(to: directory.appending(path: "unavailable-thumbnails.json"))
+        let names = [1911, 3022].map { ImageKind.thumbnail(speciesId: $0).cacheFileName }
+        BulkDownload(store: store, registryName: "unavailable-thumbnails.json")
+            .record(names, of: 2837)
 
+        // A separate instance, reading only what the previous one left on disk.
         let pack = ThumbnailPack(store: store, repository: try makeRepository())
         #expect(pack.missingCount() == 2837 - 2)
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    /// A run where *every* object 404s means the bucket moved or the path is wrong,
+    /// not that 2 837 images vanished. Recording it would make the next launch skip
+    /// the whole pack without a request and report the cache as complete when it is
+    /// empty — the app's core promise, silently broken, with no way back.
+    @Test("un run intégralement en échec n'est pas enregistré : c'est l'origine qui est cassée")
+    func brokenOriginIsNotRecorded() {
+        let directory = makeDirectory()
+        let downloads = BulkDownload(store: ImageStore(directory: directory),
+                                     registryName: "unavailable-thumbnails.json")
+        let all = [1, 2, 3].map { ImageKind.thumbnail(speciesId: $0) }
+
+        downloads.record(all.map(\.cacheFileName), of: all.count)
+        #expect(all.allSatisfy { !downloads.isKnownUnavailable($0) })
+        #expect(!FileManager.default.fileExists(
+            atPath: directory.appending(path: "unavailable-thumbnails.json").path))
+
+        // One success in the same run is enough to trust the rest as genuine 404s.
+        downloads.record(all.map(\.cacheFileName), of: all.count + 1)
+        #expect(all.allSatisfy { downloads.isKnownUnavailable($0) })
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -85,11 +112,23 @@ struct DownloadTests {
     }
 
     /// A picker selection must keep matching its own tag: with the favourite ids
-    /// inside the case, adding a favourite while the screen is open would silently
-    /// clear the selection.
+    /// inside the case, adding a favourite while the screen is open would change the
+    /// tag and silently clear the selection. So the scope value must stay equal to
+    /// itself across a change the estimate does follow.
     @Test("le périmètre « favoris » ne dépend pas du contenu des favoris")
-    func favoritesScopeIsStable() {
-        #expect(TripScope.favorites == TripScope.favorites)
+    func favoritesScopeIsStable() throws {
+        let repository = try makeRepository()
+        let favorites = Favorites(defaults: makeDefaults())
+        let trip = TripPreparation(store: ImageStore(directory: makeDirectory()),
+                                   repository: repository,
+                                   favorites: favorites)
+        let scope = TripScope.favorites
+        #expect(try trip.estimate(for: scope).photos == 0)
+
+        for id in try repository.search("oursin", limit: 2).map(\.id) { favorites.toggle(id) }
+
+        #expect(try trip.estimate(for: scope).photos > 0)
+        #expect(scope == .favorites)
     }
 
     /// `@Entry` environment defaults are computed, so a fresh `ThumbnailPack()`

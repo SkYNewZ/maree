@@ -105,7 +105,7 @@ final class BulkDownload {
                 }
             }
             // A 404 stays a fact even when the run was cancelled.
-            self.record(missing)
+            self.record(missing, of: done)
             guard self.generation == generation else { return }
             self.state = Task.isCancelled ? .cancelled : .finished(failed: failed)
         }
@@ -118,8 +118,15 @@ final class BulkDownload {
         if state.isRunning { state = .cancelled }
     }
 
-    private func record(_ names: [String]) {
-        guard !names.isEmpty else { return }
+    /// Records what the origin answered 404 for — but only when the rest of the run
+    /// proves the origin is healthy. A run where *everything* 404s is a moved bucket
+    /// or a wrong path, not 2 837 absent objects: recording it would make the next
+    /// launch skip the whole pack without a request and report « complètes » over an
+    /// empty cache, with no way back short of reinstalling. A strict minority is the
+    /// weakest threshold that rules that out; the real ratio is 15 in 2 837.
+    /// `internal` so the round trip is testable without a network.
+    func record(_ names: [String], of total: Int) {
+        guard !names.isEmpty, names.count < total else { return }
         unavailable.formUnion(names)
         try? JSONEncoder().encode(unavailable.sorted()).write(to: registry, options: .atomic)
     }

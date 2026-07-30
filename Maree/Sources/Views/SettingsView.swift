@@ -27,6 +27,14 @@ struct SettingsView: View {
                     if pack.state.isRunning, let fraction = pack.state.fraction {
                         ProgressView(value: fraction)
                     }
+                    // ~46 Mo, possibly on a metered connection. Suspending is safe and
+                    // resumable in the same session: the cache directory is the progress
+                    // state, and `startIfNeeded()` only refuses while a run is in flight.
+                    if pack.state.isRunning {
+                        Button("Suspendre", role: .destructive) { pack.cancel() }
+                    } else if pack.state == .cancelled {
+                        Button("Reprendre") { Task { await pack.startIfNeeded() } }
+                    }
                     LabeledContent("Images en cache", value: formatted(cacheSize))
                 }
 
@@ -89,7 +97,8 @@ struct SettingsView: View {
         // bucket simply does not have are recorded, not reported as a problem.
         case .finished(let failed) where failed > 0: Text("\(failed) à reprendre")
         case .finished: Text("complètes")
-        case .idle, .cancelled: Text("en attente")
+        case .cancelled: Text("suspendues")
+        case .idle: Text("en attente")
         }
     }
 
