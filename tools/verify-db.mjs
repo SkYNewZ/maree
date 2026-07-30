@@ -69,6 +69,13 @@ export function verifyDatabase(path) {
   `)
   if (badPhotos > 0) problems.push(`${badPhotos} species have non-contiguous photo positions`)
 
+  // updatedAt is rendered as-is: either a dd/mm/yyyy date or nothing at all.
+  const badDates = count(`
+    SELECT COUNT(*) AS c FROM species
+    WHERE updatedAt IS NOT NULL AND updatedAt NOT GLOB '[0-9][0-9]/[0-9][0-9]/[0-9][0-9][0-9][0-9]'
+  `)
+  if (badDates > 0) problems.push(`${badDates} species have a malformed updatedAt`)
+
   // Search must be diacritics-insensitive and prefix-capable.
   const hit = db.prepare(`
     SELECT COUNT(*) AS c FROM speciesSearch WHERE speciesSearch MATCH 'elephant*'

@@ -162,7 +162,9 @@ for (const f of fiches) {
     photos.length,
     depth?.min ?? null, depth?.max ?? null,
     temp?.min ?? null, temp?.max ?? null,
-    f.dateModification ?? null,
+    // dateModification is dd/mm/yyyy, often empty and sometimes carrying DORIS's
+    // internal "_has_warning" marker (alone or appended). NULL when nothing is left.
+    f.dateModification?.replace('_has_warning', '').trim() || null,
     sourceUrl(scientificName, commonName, id)
   )
 
