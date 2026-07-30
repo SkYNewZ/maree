@@ -2,7 +2,7 @@
 // Transforms the DORIS Android database into maree.db: European subset,
 // cleaned text, typed sections, precomputed FTS5 index.
 //
-// Usage: node tools/prepare-db.mjs [--source=<path>] [--out=<path>] [--zones=1,2,3,5]
+// Usage: node tools/prepare-db.mjs [--source=<path>] [--out=<path>]
 
 import { DatabaseSync } from 'node:sqlite'
 import { readFileSync, mkdirSync, rmSync, renameSync, existsSync } from 'node:fs'
@@ -20,7 +20,7 @@ const args = new Map(
 
 const SOURCE = resolve(args.get('source') ?? `${process.env.HOME}/src/skynewz/doris-pwa/DorisAndroid.db`)
 const OUT = resolve(args.get('out') ?? 'Maree/Resources/maree.db')
-const ZONES = (args.get('zones') ?? '1,2,3,5').split(',').map(Number)
+const ZONES = [1, 2, 3, 5]
 
 if (!existsSync(SOURCE)) {
   console.error(`Source database not found: ${SOURCE}`)
@@ -224,7 +224,6 @@ const insertMeta = db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)')
 insertMeta.run('dorisDate', dorisDate)
 insertMeta.run('generatedAt', new Date().toISOString())
 insertMeta.run('speciesCount', String(fiches.length))
-insertMeta.run('zones', ZONES.join(','))
 
 db.exec('COMMIT')
 db.exec('DETACH src')

@@ -69,7 +69,7 @@ CREATE TABLE taxonRank (
 
 CREATE TABLE meta (
   key    TEXT PRIMARY KEY,
-  value  TEXT NOT NULL                    -- dorisDate, generatedAt, speciesCount, zones
+  value  TEXT NOT NULL                    -- dorisDate, generatedAt, speciesCount
 );
 
 CREATE INDEX species_groupId ON species(groupId);
