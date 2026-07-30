@@ -146,5 +146,5 @@ struct SpeciesRepository {
 }
 
 extension EnvironmentValues {
-    @Entry var repository = SpeciesRepository(reader: AppDatabase.makeShared().reader)
+    @Entry var repository = SpeciesRepository(reader: AppDatabase.shared.reader)
 }

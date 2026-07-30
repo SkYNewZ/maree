@@ -1,5 +1,6 @@
 import Testing
 import GRDB
+import SwiftUI
 @testable import Maree
 
 @Suite("Contrat de la base embarquée")
@@ -8,10 +9,12 @@ struct DatabaseContractTests {
 
     @Test("la base contient le sous-ensemble européen attendu")
     func speciesCount() throws {
-        let count = try database.reader.read { db in
-            try Species.fetchCount(db)
+        // fetchAll, not fetchCount: decoding every row also proves each `status`
+        // literal maps to a SpeciesStatus case, which a count would never touch.
+        let species = try database.reader.read { db in
+            try Species.fetchAll(db)
         }
-        #expect(count == 2837)
+        #expect(species.count == 2837)
     }
 
     @Test("aucun markup DORIS résiduel dans les textes affichés")
@@ -51,10 +54,19 @@ struct DatabaseContractTests {
 
     @Test("l'instance partagée ouvre la base embarquée")
     func sharedDatabaseOpens() throws {
-        let count = try AppDatabase.makeShared().reader.read { db in
+        let count = try AppDatabase.shared.reader.read { db in
             try Species.fetchCount(db)
         }
         #expect(count == 2837)
+    }
+
+    @Test("chaque lecture de l'environnement partage la même connexion")
+    func environmentReadsShareOneConnection() {
+        // `@Entry` defaults are computed, so a non-stored default would open a new
+        // DatabaseQueue on every read — one file descriptor per row of a List.
+        let readers = (0..<3).map { _ in EnvironmentValues().repository.reader }
+        #expect(readers.allSatisfy { $0 === readers[0] })
+        #expect(readers[0] === AppDatabase.shared.reader)
     }
 
     @Test("la date de la base DORIS est renseignée")

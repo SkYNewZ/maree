@@ -82,6 +82,9 @@ struct Photo: Codable, FetchableRecord, TableRecord, Hashable, Identifiable {
     var position: Int
     var caption: String?
 
+    /// Identity within one species' gallery, for `ForEach`. The table's primary key
+    /// is composite (speciesId, position), so never use GRDB's id-based requests
+    /// (`Photo.fetchOne(db, id:)` and friends) — they trap on a composite key.
     var id: Int { position }
 }
 

@@ -1,7 +1,11 @@
 import Foundation
 import GRDB
 
-enum DatabaseError: LocalizedError {
+/// Not named `DatabaseError`: GRDB already exports a public `DatabaseError`, and a
+/// module-local type of that name would win unqualified lookup everywhere, so a
+/// `catch let error as DatabaseError` meant for a SQLite failure would compile and
+/// never match.
+enum AppDatabaseError: LocalizedError {
     case bundledDatabaseMissing
 
     var errorDescription: String? {
@@ -22,11 +26,16 @@ enum DatabaseError: LocalizedError {
 /// Read-only access to the bundled species database. The file ships inside the
 /// app bundle and is never written to, so a single reader is enough.
 struct AppDatabase {
+    /// The one connection the app uses. `@Entry` environment defaults are computed,
+    /// so they re-evaluate on every read — without this stored `static let` each
+    /// `@Environment(\.repository)` read would open another queue on the 20 MB file.
+    static let shared = makeShared()
+
     let reader: DatabaseReader
 
     init() throws {
         guard let path = Bundle.main.path(forResource: "maree", ofType: "db") else {
-            throw DatabaseError.bundledDatabaseMissing
+            throw AppDatabaseError.bundledDatabaseMissing
         }
         var configuration = Configuration()
         configuration.readonly = true
