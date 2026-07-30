@@ -7,7 +7,7 @@
 
 import { DatabaseSync } from 'node:sqlite'
 import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
+import { parseArgs, promisify } from 'node:util'
 import { writeFile, mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -20,13 +20,16 @@ const MAX_EDGE = 400
 const QUALITY = 50
 const CONCURRENCY = 6
 
-const args = new Map(
-  process.argv.slice(2).filter((a) => a.startsWith('--'))
-    .map((a) => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=') || 'true'] })
-)
-const DB = resolve(args.get('db') ?? 'Maree/Resources/maree.db')
-const LIMIT = args.get('limit') ? Number(args.get('limit')) : null
-const FORCE = args.get('force') === 'true'
+const { values: args } = parseArgs({
+  options: {
+    db: { type: 'string' },
+    limit: { type: 'string' },
+    force: { type: 'boolean' },
+  },
+})
+const DB = resolve(args.db ?? 'Maree/Resources/maree.db')
+const LIMIT = args.limit ? Number(args.limit) : null
+const FORCE = args.force ?? false
 
 const db = new DatabaseSync(DB, { readOnly: true })
 const ids = db.prepare(

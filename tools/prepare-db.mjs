@@ -7,19 +7,21 @@
 import { DatabaseSync } from 'node:sqlite'
 import { readFileSync, mkdirSync, rmSync, renameSync, existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { parseArgs } from 'node:util'
 import { verifyDatabase } from './verify-db.mjs'
 import { clean, parseRange } from './lib/text.mjs'
 import { SECTION_KEYS } from './lib/sections.mjs'
 import { PHOTO_HAS_IMAGE } from './lib/photos.mjs'
 
-const args = new Map(
-  process.argv.slice(2)
-    .filter((a) => a.startsWith('--'))
-    .map((a) => { const [k, ...v] = a.slice(2).split('='); return [k, v.join('=')] })
-)
+const { values: args } = parseArgs({
+  options: {
+    source: { type: 'string' },
+    out: { type: 'string' },
+  },
+})
 
-const SOURCE = resolve(args.get('source') ?? `${process.env.HOME}/src/skynewz/doris-pwa/DorisAndroid.db`)
-const OUT = resolve(args.get('out') ?? 'Maree/Resources/maree.db')
+const SOURCE = resolve(args.source ?? `${process.env.HOME}/src/skynewz/doris-pwa/DorisAndroid.db`)
+const OUT = resolve(args.out ?? 'Maree/Resources/maree.db')
 const ZONES = [1, 2, 3, 5]
 
 if (!existsSync(SOURCE)) {
