@@ -35,27 +35,37 @@ final class TripPreparation {
         downloads = BulkDownload(store: store, registryName: "unavailable-photos.json")
     }
 
-    func estimate(for scope: TripScope) throws -> (photos: Int, bytes: Int64) {
-        let missing = try missingPhotos(in: scope)
+    func estimate(for scope: TripScope) async throws -> (photos: Int, bytes: Int64) {
+        let missing = try await missingPhotos(in: scope)
         return (missing.count, Int64(missing.count) * Self.averagePhotoBytes)
     }
 
     func start(_ scope: TripScope) async {
-        await downloads.run((try? missingPhotos(in: scope)) ?? [], poolSize: 4, progressEvery: 10)
+        await downloads.run((try? await missingPhotos(in: scope)) ?? [], poolSize: 4, progressEvery: 10)
     }
 
     func cancel() { downloads.cancel() }
 
-    private func missingPhotos(in scope: TripScope) throws -> [ImageKind] {
-        let species = switch scope {
-        case .favorites: try repository.species(ids: favorites.ids)
-        case .group(let group): try repository.species(inGroup: group.id)
-        case .zone(let zone): try repository.species(inZone: zone.id)
-        }
+    /// Runs every time the picker moves, and the widest scope is a recursive query
+    /// over 20 048 photos — so both the query and the cache listing stay off the main
+    /// actor, and one listing replaces one `fileExists` per photo.
+    private func missingPhotos(in scope: TripScope) async throws -> [ImageKind] {
+        let species = try await species(in: scope, favoriteIds: favorites.ids)
+        let cached = await store.cachedFileNames()
         return species
             .flatMap { species in
                 (0..<species.photoCount).map { ImageKind.photo(speciesId: species.id, position: $0) }
             }
-            .filter { !downloads.isKnownUnavailable($0) && !store.cachedFileExists(for: $0) }
+            .filter { !downloads.isKnownUnavailable($0) && !cached.contains($0.cacheFileName) }
+    }
+
+    /// Favourite ids are read on the main actor and passed in: `Favorites` lives there.
+    @concurrent
+    private nonisolated func species(in scope: TripScope, favoriteIds: [Int]) async throws -> [Species] {
+        switch scope {
+        case .favorites: try repository.species(ids: favoriteIds)
+        case .group(let group): try repository.species(inGroup: group.id)
+        case .zone(let zone): try repository.species(inZone: zone.id)
+        }
     }
 }

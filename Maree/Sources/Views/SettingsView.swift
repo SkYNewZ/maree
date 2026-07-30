@@ -35,6 +35,11 @@ struct SettingsView: View {
                     } else if pack.state == .cancelled {
                         Button("Reprendre") { Task { await pack.startIfNeeded() } }
                     }
+                    // A bucket outage 404ing part of the pack is recorded permanently:
+                    // without this the app would keep reporting « complètes » over a
+                    // cache that is missing whatever was down that day.
+                    Button("Revérifier les vignettes") { Task { await pack.recheck() } }
+                        .disabled(pack.state.isRunning)
                     LabeledContent("Images en cache", value: formatted(cacheSize))
                 }
 
@@ -85,7 +90,7 @@ struct SettingsView: View {
         }
         .task(id: scope) {
             guard let scope else { estimate = nil; return }
-            estimate = try? trip.estimate(for: scope)
+            estimate = try? await trip.estimate(for: scope)
         }
     }
 
@@ -107,7 +112,7 @@ struct SettingsView: View {
         Task {
             await trip.start(scope)
             cacheSize = await imageStore.cacheSizeInBytes()
-            estimate = try? trip.estimate(for: scope)
+            estimate = try? await trip.estimate(for: scope)
         }
     }
 

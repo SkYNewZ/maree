@@ -47,14 +47,27 @@ final class ImageStore {
     private let memory = NSCache<NSString, UIImage>()
     private var inFlight: [ImageKind: Task<UIImage?, Never>] = [:]
 
-    init(directory: URL? = nil) {
+    /// Injectable so a test can answer a request without a network: what a captive
+    /// portal sends back is exactly what the cache must refuse to keep.
+    private let session: URLSession
+
+    init(directory: URL? = nil, session: URLSession = .shared) {
         self.directory = directory ?? URL.applicationSupportDirectory.appending(path: "Images")
+        self.session = session
         memory.countLimit = 200
         try? FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true)
     }
 
     func cachedFileExists(for kind: ImageKind) -> Bool {
         FileManager.default.fileExists(atPath: fileURL(for: kind).path)
+    }
+
+    /// What the cache holds, in one listing. Bulk callers ask about thousands of
+    /// files at once — 20 048 for the largest trip scope — and that many `stat`
+    /// calls on the main actor is a visible freeze; one `readdir` is not.
+    @concurrent
+    nonisolated func cachedFileNames() async -> Set<String> {
+        Set((try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? [])
     }
 
     /// Returns the image, loading from memory, then disk, then the network.
@@ -70,21 +83,26 @@ final class ImageStore {
 
         // Only the file I/O leaves the main actor; decoding stays on it, so `UIImage`
         // never crosses an isolation boundary.
-        let task = Task<UIImage?, Never> { [directory] in
+        let task = Task<UIImage?, Never> { [directory, session] in
             let url = directory.appending(path: kind.cacheFileName)
             if let data = await Self.readFile(url), let image = UIImage(data: data) {
                 return image
             }
-            guard let data = try? await Self.fetch(kind), let image = UIImage(data: data) else {
-                return nil
-            }
+            guard let data = try? await Self.fetch(kind, session: session) else { return nil }
             try? await Self.writeFile(data, to: url)
-            return image
+            return UIImage(data: data)
         }
         inFlight[kind] = task
         let image = await task.value
         inFlight[kind] = nil
         if let image { memory.setObject(image, forKey: key) }
+
+        // The thumbnail pack guarantees one 400 px image per species offline; the
+        // full-size 0.jpg is never prefetched. Without this the fiche header and the
+        // gallery's first frame are placeholders on a fresh install with no network.
+        if image == nil, case .photo(let speciesId, 0) = kind {
+            return await self.image(for: .thumbnail(speciesId: speciesId))
+        }
         return image
     }
 
@@ -92,7 +110,7 @@ final class ImageStore {
     /// holding thousands of decoded images in memory would be pointless.
     func download(_ kind: ImageKind) async throws {
         guard !cachedFileExists(for: kind) else { return }
-        let data = try await Self.fetch(kind)
+        let data = try await Self.fetch(kind, session: session)
         try await Self.writeFile(data, to: fileURL(for: kind))
     }
 
@@ -126,18 +144,23 @@ final class ImageStore {
         try data.write(to: url, options: .atomic)
     }
 
-    /// Only a 200 body is ever returned, so a 404 page is never written to the cache
-    /// as if it were a photo. `.atomic` writes then rule out a truncated file.
+    /// Only a decodable 200 body is ever returned, so nothing but an image can reach
+    /// the cache. A captive portal answering 200 with its login page — hotel or
+    /// campsite Wi-Fi, the night before a dive — would otherwise write 2 837 poison
+    /// files that `cachedFileExists` reports as a complete cache forever.
+    /// The check lives here rather than in the callers: both write paths go through
+    /// it, and drifting apart is exactly how the hole appeared.
     ///
     /// A 404 is told apart from every other failure because it is permanent: bulk
     /// prefetching records it and stops asking, while a 5xx or a dead network must
     /// stay retryable.
-    private static func fetch(_ kind: ImageKind) async throws -> Data {
-        let (data, response) = try await URLSession.shared.data(from: kind.remoteURL)
+    private static func fetch(_ kind: ImageKind, session: URLSession) async throws -> Data {
+        let (data, response) = try await session.data(from: kind.remoteURL)
         guard let http = response as? HTTPURLResponse else { throw ImageError.notAvailable }
         guard http.statusCode == 200 else {
             throw http.statusCode == 404 ? ImageError.notFound : ImageError.notAvailable
         }
+        guard UIImage(data: data) != nil else { throw ImageError.notAvailable }
         return data
     }
 }

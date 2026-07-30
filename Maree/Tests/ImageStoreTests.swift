@@ -4,6 +4,31 @@ import SwiftUI
 import UIKit
 @testable import Maree
 
+/// Answers every request without a network: the thumbnail path 404s, and anything
+/// else gets a 200 carrying HTML — what an intercepting portal sends back.
+private nonisolated final class CaptivePortalStub: URLProtocol {
+    static let session: URLSession = {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CaptivePortalStub.self]
+        return URLSession(configuration: configuration)
+    }()
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        guard let url = request.url,
+              let response = HTTPURLResponse(url: url,
+                                             statusCode: url.lastPathComponent == "0_maree.heic" ? 404 : 200,
+                                             httpVersion: nil, headerFields: nil)
+        else { return }
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data("<html>Connectez-vous au réseau</html>".utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+}
+
 @Suite("Cache d'images")
 @MainActor
 struct ImageStoreTests {
@@ -69,6 +94,38 @@ struct ImageStoreTests {
         let fromMemory = await store.image(for: kind)
         #expect(fromMemory != nil)
 
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    /// A captive portal answers 200 with its own login page. Writing that body to the
+    /// cache would leave a species permanently « téléchargée » over a file that is not
+    /// an image — silent, and undoable only by reinstalling.
+    @Test("une réponse 200 qui n'est pas une image n'est jamais écrite en cache")
+    func poisonedPayloadIsRefused() async throws {
+        let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        let store = ImageStore(directory: directory, session: CaptivePortalStub.session)
+        let kind = ImageKind.photo(speciesId: 999_010, position: 1)
+
+        await #expect(throws: ImageError.self) { try await store.download(kind) }
+        #expect(store.cachedFileExists(for: kind) == false)
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    /// The pack guarantees one thumbnail per species offline; the full-size `0.jpg`
+    /// is never prefetched. Without the fallback, a fresh install in airplane mode
+    /// opens every fiche on a placeholder while the thumbnail sits on disk.
+    @Test("la photo de tête retombe sur la vignette déjà en cache")
+    func headerPhotoFallsBackToThumbnail() async throws {
+        let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        let store = ImageStore(directory: directory, session: CaptivePortalStub.session)
+        let speciesId = 999_011
+        try #require(makePNG())
+            .write(to: directory.appending(path: ImageKind.thumbnail(speciesId: speciesId).cacheFileName))
+
+        #expect(await store.image(for: .photo(speciesId: speciesId, position: 0)) != nil)
+        // Only the first photo stands in for the fiche header; the gallery keeps its
+        // placeholders rather than repeating the same image under every position.
+        #expect(await store.image(for: .photo(speciesId: speciesId, position: 1)) == nil)
         try? FileManager.default.removeItem(at: directory)
     }
 

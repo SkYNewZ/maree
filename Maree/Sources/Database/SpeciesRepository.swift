@@ -2,7 +2,10 @@ import Foundation
 import GRDB
 import SwiftUI
 
-struct SpeciesRepository {
+/// `nonisolated` against the module's MainActor default: these are synchronous
+/// SQLite reads on a connection GRDB already serialises, and the widest of them
+/// walks 20 048 rows. Pinned to the main actor they could only ever block it.
+nonisolated struct SpeciesRepository {
     let reader: DatabaseReader
 
     // MARK: - Search

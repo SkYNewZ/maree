@@ -35,7 +35,8 @@ final class BulkDownload {
     /// image behind it, so their downloads 404 forever. Without this list every
     /// launch would re-request them and the pack could never read as complete.
     /// It lives next to the images because it describes them.
-    /// ponytail: delete the file to retry, e.g. once the bucket is fixed.
+    /// Cleared by `forgetUnavailable()`, which Réglages exposes: a bucket outage that
+    /// 404s part of the pack is otherwise recorded forever.
     private let registry: URL
     private var unavailable: Set<String>
 
@@ -55,6 +56,15 @@ final class BulkDownload {
 
     func isKnownUnavailable(_ kind: ImageKind) -> Bool {
         unavailable.contains(kind.cacheFileName)
+    }
+
+    /// Forgets every recorded 404. `record` only rules out a *total* origin failure:
+    /// a partial one — a bucket 404ing a third of the pack for an hour — is recorded
+    /// permanently, and the pack then reports « complètes » over a cache that is not.
+    /// This is the way back, and the user's only one.
+    func forgetUnavailable() {
+        unavailable.removeAll()
+        try? FileManager.default.removeItem(at: registry)
     }
 
     /// Downloads `kinds`, at most `poolSize` at a time — an unbounded fan-out of a
@@ -166,19 +176,33 @@ final class ThumbnailPack {
         downloads = BulkDownload(store: store, registryName: "unavailable-thumbnails.json")
     }
 
-    func missingCount() -> Int { missing().count }
+    func missingCount() async -> Int { await missing().count }
 
     func startIfNeeded() async {
-        await downloads.run(missing(), poolSize: 6, progressEvery: 25)
+        await downloads.run(await missing(), poolSize: 6, progressEvery: 25)
+    }
+
+    /// Asks the bucket again for the thumbnails a previous run recorded as absent.
+    func recheck() async {
+        downloads.forgetUnavailable()
+        await startIfNeeded()
     }
 
     func cancel() { downloads.cancel() }
 
-    private func missing() -> [ImageKind] {
-        let ids = (try? repository.allSpeciesIds()) ?? []
+    /// One directory listing rather than 2 837 `fileExists` calls, and the species
+    /// query off the main actor: this runs on every launch, from `RootView`'s `.task`.
+    private func missing() async -> [ImageKind] {
+        let ids = await allSpeciesIds()
+        let cached = await store.cachedFileNames()
         return ids
             .map { ImageKind.thumbnail(speciesId: $0) }
-            .filter { !downloads.isKnownUnavailable($0) && !store.cachedFileExists(for: $0) }
+            .filter { !downloads.isKnownUnavailable($0) && !cached.contains($0.cacheFileName) }
+    }
+
+    @concurrent
+    private nonisolated func allSpeciesIds() async -> [Int] {
+        (try? repository.allSpeciesIds()) ?? []
     }
 }
 

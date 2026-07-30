@@ -26,7 +26,7 @@ struct DownloadTests {
     }
 
     @Test("le pack ne recompte pas les vignettes déjà en cache")
-    func packSkipsCachedFiles() throws {
+    func packSkipsCachedFiles() async throws {
         let directory = makeDirectory()
         let store = ImageStore(directory: directory)
         let repository = try makeRepository()
@@ -39,7 +39,7 @@ struct DownloadTests {
         }
 
         let pack = ThumbnailPack(store: store, repository: repository)
-        #expect(pack.missingCount() == 2837 - seeded.count)
+        #expect(await pack.missingCount() == 2837 - seeded.count)
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -51,7 +51,7 @@ struct DownloadTests {
     /// the next launch reads have to be the same shape, and asserting the JSON here
     /// would only restate this test's own assumption about it.
     @Test("une vignette absente du bucket n'est plus recomptée aux lancements suivants")
-    func packSkipsKnownUnavailable() throws {
+    func packSkipsKnownUnavailable() async throws {
         let directory = makeDirectory()
         let store = ImageStore(directory: directory)
         let names = [1911, 3022].map { ImageKind.thumbnail(speciesId: $0).cacheFileName }
@@ -60,7 +60,7 @@ struct DownloadTests {
 
         // A separate instance, reading only what the previous one left on disk.
         let pack = ThumbnailPack(store: store, repository: try makeRepository())
-        #expect(pack.missingCount() == 2837 - 2)
+        #expect(await pack.missingCount() == 2837 - 2)
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -87,7 +87,7 @@ struct DownloadTests {
     }
 
     @Test("l'estimation d'une sortie compte les photos et un poids plausible")
-    func tripEstimate() throws {
+    func tripEstimate() async throws {
         let repository = try makeRepository()
         let favorites = Favorites(defaults: makeDefaults())
         for id in try repository.search("oursin", limit: 3).map(\.id) { favorites.toggle(id) }
@@ -95,7 +95,7 @@ struct DownloadTests {
         let trip = TripPreparation(store: ImageStore(directory: makeDirectory()),
                                    repository: repository,
                                    favorites: favorites)
-        let estimate = try trip.estimate(for: .favorites)
+        let estimate = try await trip.estimate(for: .favorites)
         #expect(estimate.photos > 0)
         #expect(estimate.bytes > Int64(estimate.photos) * 10_000)
     }
@@ -116,18 +116,18 @@ struct DownloadTests {
     /// tag and silently clear the selection. So the scope value must stay equal to
     /// itself across a change the estimate does follow.
     @Test("le périmètre « favoris » ne dépend pas du contenu des favoris")
-    func favoritesScopeIsStable() throws {
+    func favoritesScopeIsStable() async throws {
         let repository = try makeRepository()
         let favorites = Favorites(defaults: makeDefaults())
         let trip = TripPreparation(store: ImageStore(directory: makeDirectory()),
                                    repository: repository,
                                    favorites: favorites)
         let scope = TripScope.favorites
-        #expect(try trip.estimate(for: scope).photos == 0)
+        #expect(try await trip.estimate(for: scope).photos == 0)
 
         for id in try repository.search("oursin", limit: 2).map(\.id) { favorites.toggle(id) }
 
-        #expect(try trip.estimate(for: scope).photos > 0)
+        #expect(try await trip.estimate(for: scope).photos > 0)
         #expect(scope == .favorites)
     }
 
