@@ -37,7 +37,7 @@ db.close()
 console.log(`${ids.length} thumbnails to consider`)
 
 const workDir = await mkdtemp(join(tmpdir(), 'maree-thumbs-'))
-const counters = { skipped: 0, uploaded: 0, failed: 0, bytes: 0 }
+const counters = { skipped: 0, uploaded: 0, missing: 0, failed: 0, bytes: 0 }
 
 async function alreadyPublished(id) {
   const res = await fetch(`${PUBLIC_BASE}/images/${id}/0_maree.heic`, { method: 'HEAD' })
@@ -49,6 +49,10 @@ async function processOne(id) {
     if (!FORCE && await alreadyPublished(id)) { counters.skipped++; return }
 
     const res = await fetch(`${PUBLIC_BASE}/images/${id}/0.jpg`)
+    // 16 species carry a photoCount the bucket has no object for. That is a fact
+    // about the origin, not a failure of this run: counting it as one made every
+    // successful re-run exit 1, and hid the runs that really did break.
+    if (res.status === 404) { counters.missing++; return }
     if (!res.ok) throw new Error(`source image HTTP ${res.status}`)
 
     const source = join(workDir, `${id}.jpg`)
@@ -79,7 +83,7 @@ async function worker() {
     const index = cursor++
     await processOne(ids[index])
     if (index % 100 === 0) {
-      console.log(`  ${index}/${ids.length} — ${counters.uploaded} uploaded, ${counters.skipped} skipped, ${counters.failed} failed`)
+      console.log(`  ${index}/${ids.length} — ${counters.uploaded} uploaded, ${counters.skipped} skipped, ${counters.missing} missing, ${counters.failed} failed`)
     }
   }
 }
@@ -88,5 +92,5 @@ await Promise.all(Array.from({ length: CONCURRENCY }, worker))
 await rm(workDir, { recursive: true, force: true })
 
 const averageKb = counters.uploaded ? Math.round(counters.bytes / counters.uploaded / 1024) : 0
-console.log(`uploaded ${counters.uploaded} (avg ${averageKb} KB), skipped ${counters.skipped}, failed ${counters.failed}`)
+console.log(`uploaded ${counters.uploaded} (avg ${averageKb} KB), skipped ${counters.skipped}, missing at origin ${counters.missing}, failed ${counters.failed}`)
 if (counters.failed > 0) process.exit(1)

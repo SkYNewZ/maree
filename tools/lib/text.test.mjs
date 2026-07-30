@@ -43,6 +43,13 @@ test('extrait les plages de profondeur et de temperature', () => {
   assert.equal(parseRange('30 m maximum', 'm'), null)
 })
 
+test('accepte les bornes negatives sans casser le separateur tiret', () => {
+  // Fiche 1582 : « prefere les eaux fraiches (-1 a 2°C » — le signe se perdait.
+  assert.deepEqual(parseRange('les eaux fraîches (-1 à 2°C', '°C'), { min: -1, max: 2 })
+  assert.deepEqual(parseRange('de -2 à -1 °C', '°C'), { min: -2, max: -1 })
+  assert.deepEqual(parseRange('12-18 m', 'm'), { min: 12, max: 18 })
+})
+
 test('les cles de sections sont completes et ordonnees', () => {
   assert.equal(Object.keys(SECTION_KEYS).length, 14)
   assert.equal(SECTION_KEYS['Critères de reconnaissance'], 'identification')

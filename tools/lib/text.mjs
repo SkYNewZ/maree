@@ -36,11 +36,13 @@ export function clean(text) {
 
 const RANGE_UNITS = { m: 'm\\b', '°C': '°\\s*C' }
 
-// Matches "5 à 30 m", "12–18 m", "de 8 et 24 °C". Returns null unless both bounds
-// are present and ordered — a single "30 m maximum" is not a range.
+// Matches "5 à 30 m", "12–18 m", "de 8 et 24 °C", "-1 à 2 °C". Returns null unless
+// both bounds are present and ordered — a single "30 m maximum" is not a range.
+// The leading sign is optional on both bounds: without it "-1 à 2 °C" shipped as
+// a range starting at +1. "12-18 m" still parses, the separator taking the hyphen.
 export function parseRange(text, unit) {
   if (!text) return null
-  const pattern = new RegExp(`(\\d+)\\s*(?:–|-|à|et)\\s*(\\d+)\\s*${RANGE_UNITS[unit]}`, 'i')
+  const pattern = new RegExp(`(-?\\d+)\\s*(?:–|-|à|et)\\s*(-?\\d+)\\s*${RANGE_UNITS[unit]}`, 'i')
   const match = text.match(pattern)
   if (!match) return null
   const min = Number(match[1])

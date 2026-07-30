@@ -37,9 +37,11 @@ function slug(text) {
     .replace(/[^a-zA-Z0-9]+/g, '-').replace(/^-|-$/g, '').toLowerCase()
 }
 
+// Empty segments are dropped: 4 species (all diatoms) carry no common name, and
+// joining blind gave them a double dash — ".../melosira-moniliformis--6053".
 function sourceUrl(scientificName, commonName, id) {
   const sci = slug(scientificName.split(/\s+/).slice(0, 2).join(' '))
-  return `https://doris.ffessm.fr/Especes/${sci}-${slug(commonName)}-${id}`
+  return `https://doris.ffessm.fr/Especes/${[sci, slug(commonName), id].filter(Boolean).join('-')}`
 }
 
 console.log(`source: ${SOURCE}`)
