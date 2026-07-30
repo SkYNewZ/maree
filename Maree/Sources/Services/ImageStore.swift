@@ -49,11 +49,10 @@ final class ImageStore {
     /// portal sends back is exactly what the cache must refuse to keep.
     private let session: URLSession
 
-    /// The negative half of the cache: objects the bucket answers 404 for. 16 species
-    /// carry a `photoCount` with no image behind it, so their downloads fail forever.
-    /// It belongs here rather than in a bulk run because it is a fact about the
-    /// origin — and because the display path must skip them too, or every appearance
-    /// of one of those rows fires a fresh doomed request.
+    /// The negative half of the cache: objects the bucket answers 404 for — 16 species
+    /// carry a `photoCount` with no image behind it. A fact about the origin, so it
+    /// belongs beside the images rather than to a bulk run, and the display path skips
+    /// them too: otherwise every appearance of those rows fires a doomed request.
     private var unavailable: Set<String>
     private let registry: URL
 
@@ -64,15 +63,21 @@ final class ImageStore {
         memory.countLimit = 200
         try? FileManager.default.createDirectory(at: images, withIntermediateDirectories: true)
 
-        // One registry per bulk consumer used to live here; the key spaces are
-        // disjoint (`t-` / `p-`), so an older install's two files merge into this one.
-        // Merged rather than dropped: a later run made only of the forgotten 404s is
-        // a *total* failure by `BulkDownload.record`'s threshold and would never be
-        // recorded again — the 16 would be re-requested on every launch, forever.
+        // One registry per bulk consumer used to live here; the key spaces are disjoint
+        // (`t-` / `p-`), so an older install's two files merge into this one — written
+        // back before they go. Merged rather than dropped: a later run made only of the
+        // forgotten 404s is a *total* failure by `BulkDownload.record`'s threshold, so
+        // they would never be recorded again and every launch would re-request them.
         registry = images.appending(path: "unavailable.json")
         let legacy = ["unavailable-thumbnails.json", "unavailable-photos.json"]
             .map { images.appending(path: $0) }
-        unavailable = Set(([registry] + legacy).flatMap(Self.names(in:)))
+        unavailable = Set(([registry] + legacy).flatMap {
+            (try? JSONDecoder().decode([String].self, from: Data(contentsOf: $0))) ?? []
+        })
+        if legacy.contains(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+            save()
+            legacy.forEach { try? FileManager.default.removeItem(at: $0) }
+        }
 
         // Up to a gigabyte of images that can always be fetched again has no place
         // in an iCloud backup. Set on every launch: the flag is per-file and a
@@ -81,11 +86,6 @@ final class ImageStore {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? url.setResourceValues(values)
-
-        if legacy.contains(where: { FileManager.default.fileExists(atPath: $0.path) }) {
-            save()
-            legacy.forEach { try? FileManager.default.removeItem(at: $0) }
-        }
     }
 
     func cachedFileExists(for kind: ImageKind) -> Bool {
@@ -112,10 +112,6 @@ final class ImageStore {
 
     private func save() {
         try? JSONEncoder().encode(unavailable.sorted()).write(to: registry, options: .atomic)
-    }
-
-    private static func names(in url: URL) -> [String] {
-        (try? JSONDecoder().decode([String].self, from: Data(contentsOf: url))) ?? []
     }
 
     /// What the cache holds, in one listing. Bulk callers ask about thousands of

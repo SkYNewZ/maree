@@ -45,6 +45,12 @@ final class TripPreparation {
         return (missing.count, Int64(missing.count) * Self.averagePhotoBytes)
     }
 
+    /// « 128 photos · environ 6,5 Mo », the same sentence in Réglages and in a group's
+    /// confirmation alert.
+    static func summary(of estimate: (photos: Int, bytes: Int64)) -> String {
+        "\(estimate.photos) photos · environ \(estimate.bytes.formattedBytes)"
+    }
+
     func start(_ scope: TripScope) async {
         await downloads.run((try? await missingPhotos(in: scope)) ?? [], poolSize: 4, progressEvery: 10)
     }
@@ -73,17 +79,8 @@ final class TripPreparation {
     }
 }
 
-extension TripPreparation {
-    /// « 128 photos · environ 6,5 Mo » — the same sentence in Réglages and in the
-    /// confirmation alert of a group.
-    static func summary(of estimate: (photos: Int, bytes: Int64)) -> String {
-        "\(estimate.photos) photos · environ \(estimate.bytes.formattedBytes)"
-    }
-}
-
+/// The two byte counts the app shows — the cache size and a trip estimate.
 extension Int64 {
-    /// The two byte counts the app shows — the cache size and a trip estimate — must
-    /// read the same way.
     var formattedBytes: String { ByteCountFormatStyle(style: .file).format(self) }
 }
 
