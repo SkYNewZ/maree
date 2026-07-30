@@ -16,7 +16,7 @@ struct GalleryView: View {
             ForEach(photos) { photo in
                 VStack {
                     RemoteImage(.photo(speciesId: photo.speciesId, position: photo.position), contentMode: .fit)
-                        .zoomable()
+                        .modifier(Zoomable())
                     if let caption = photo.caption {
                         Text(caption)
                             .font(.footnote)
@@ -41,14 +41,8 @@ struct GalleryView: View {
     }
 }
 
-private extension View {
-    /// Pinch-to-zoom that snaps back below 1× — enough for inspecting a photo
-    /// without pulling in a gesture library.
-    func zoomable() -> some View {
-        modifier(Zoomable())
-    }
-}
-
+/// Pinch-to-zoom that snaps back below 1× — enough for inspecting a photo
+/// without pulling in a gesture library.
 private struct Zoomable: ViewModifier {
     @State private var scale: CGFloat = 1
 
