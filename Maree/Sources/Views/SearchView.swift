@@ -28,11 +28,19 @@ struct SearchView: View {
         }
     }
 
+    // GeometryReader + minHeight: centers at ordinary sizes, same as a bare
+    // ContentUnavailableView, but scrolls instead of hiding its last line
+    // behind the tab bar once the text no longer fits at AX3 (Task 7).
     private var startScreen: some View {
-        ContentUnavailableView {
-            Label("Chercher une espèce", systemImage: "magnifyingglass")
-        } description: {
-            Text("Tapez un nom commun ou scientifique. La recherche fonctionne hors ligne, accents facultatifs.")
+        GeometryReader { proxy in
+            ScrollView {
+                ContentUnavailableView {
+                    Label("Chercher une espèce", systemImage: "magnifyingglass")
+                } description: {
+                    Text("Tapez un nom commun ou scientifique. La recherche fonctionne hors ligne, accents facultatifs.")
+                }
+                .frame(minHeight: proxy.size.height)
+            }
         }
         .foregroundStyle(Theme.inkSoft)
         .background(Theme.paper)

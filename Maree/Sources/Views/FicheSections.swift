@@ -5,6 +5,13 @@ import SwiftUI
 struct FicheSections: View {
     let detail: SpeciesDetail
 
+    // The classification label column has a fixed width (below) so its value
+    // lines up across rows; at accessibility sizes that width hyphenates a
+    // word like "Embranchement" into unreadable fragments, so the row drops
+    // the fixed width and stacks label above value instead (checked at AX3 by
+    // Task 7).
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             ForEach(detail.sections, id: \.kind) { section in
@@ -44,10 +51,17 @@ struct FicheSections: View {
                 VStack(alignment: .leading, spacing: 4) {
                     sectionTitle("Classification")
                     ForEach(detail.ranks, id: \.position) { rank in
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(rank.rank).font(.caption).foregroundStyle(Theme.inkSoft)
-                                .frame(width: 110, alignment: .leading)
-                            Text(rank.name).foregroundStyle(Theme.ink)
+                        if dynamicTypeSize.isAccessibilitySize {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(rank.rank).font(.caption).foregroundStyle(Theme.inkSoft)
+                                Text(rank.name).foregroundStyle(Theme.ink)
+                            }
+                        } else {
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(rank.rank).font(.caption).foregroundStyle(Theme.inkSoft)
+                                    .frame(width: 110, alignment: .leading)
+                                Text(rank.name).foregroundStyle(Theme.ink)
+                            }
                         }
                     }
                 }

@@ -50,6 +50,15 @@ struct ThemeTests {
         #expect(contrast(Theme.ink, Theme.surface) >= 4.5)
     }
 
+    /// `Theme.inkSoft` is the caption and secondary-text colour on both `Theme.paper`
+    /// (list backgrounds, empty states) and `Theme.surface` (cards, chips) — nothing
+    /// guarded its contrast until now (measured 4.907:1 on paper, 5.158:1 on surface).
+    @Test("le texte secondaire tient AA sur le papier et sur la surface")
+    func inkSoftIsLegible() {
+        #expect(contrast(Theme.inkSoft, Theme.paper) >= 4.5)
+        #expect(contrast(Theme.inkSoft, Theme.surface) >= 4.5)
+    }
+
     @Test("un identifiant inconnu retourne l'entrée neutre au lieu de planter")
     func unknownIdFallsBack() {
         let neutral = Theme.phylum(999_999)

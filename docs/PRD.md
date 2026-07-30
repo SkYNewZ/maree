@@ -193,9 +193,14 @@ informations de l'app.
 ## 7. Design
 
 - Simple, lisible, sobre — pas de densité d'information. Public 7–77 ans.
-- Design entièrement neuf, aucune contrainte héritée de la PWA.
-- Dynamic Type et VoiceOver de base respectés (labels, tailles relatives).
-- Conception avec `/frontend-design` et `/ui-ux-pro-max` le moment venu.
+- Direction « guide de terrain » : papier crème, filets terre cuite, icône et écran de
+  lancement propres à l'app. Design entièrement neuf, aucune contrainte héritée de la PWA.
+- Palette avec variantes claire/sombre, vérifiée AA (4,5:1 texte/fond) et testée
+  automatiquement.
+- Chaque embranchement (19 entrées : 18 groupes de niveau 2, plus la racine AUTRES) porte
+  une couleur et une icône SF Symbol ; les 160 groupes de l'arbre en héritent sans
+  dupliquer la table par groupe.
+- Dynamic Type jusqu'à AX3 et VoiceOver de base respectés (labels, tailles relatives).
 
 ## 8. Contraintes techniques
 

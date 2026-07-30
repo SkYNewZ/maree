@@ -9,8 +9,16 @@ struct SpeciesListView: View {
     var body: some View {
         Group {
             if species.isEmpty {
-                ContentUnavailableView("Aucune espèce", systemImage: "magnifyingglass", description: Text(emptyMessage))
-                    .background(Theme.paper)
+                // Same GeometryReader + minHeight fix as SearchView.startScreen:
+                // centers at ordinary sizes, scrolls instead of hiding text
+                // behind the tab bar at AX3 (Task 7).
+                GeometryReader { proxy in
+                    ScrollView {
+                        ContentUnavailableView("Aucune espèce", systemImage: "magnifyingglass", description: Text(emptyMessage))
+                            .frame(minHeight: proxy.size.height)
+                    }
+                }
+                .background(Theme.paper)
             } else {
                 List(species) { item in
                     NavigationLink(value: Route.species(item.id)) {
