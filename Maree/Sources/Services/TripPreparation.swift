@@ -73,6 +73,20 @@ final class TripPreparation {
     }
 }
 
+extension TripPreparation {
+    /// « 128 photos · environ 6,5 Mo » — the same sentence in Réglages and in the
+    /// confirmation alert of a group.
+    static func summary(of estimate: (photos: Int, bytes: Int64)) -> String {
+        "\(estimate.photos) photos · environ \(estimate.bytes.formattedBytes)"
+    }
+}
+
+extension Int64 {
+    /// The two byte counts the app shows — the cache size and a trip estimate — must
+    /// read the same way.
+    var formattedBytes: String { ByteCountFormatStyle(style: .file).format(self) }
+}
+
 extension EnvironmentValues {
     @Entry var tripPreparation = TripPreparation.shared
 }

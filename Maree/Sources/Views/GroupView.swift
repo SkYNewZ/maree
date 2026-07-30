@@ -66,7 +66,7 @@ struct GroupView: View {
         } message: { estimate in
             Text(estimate.photos == 0
                  ? "Toutes les photos de ce groupe sont déjà en cache."
-                 : "\(estimate.photos) photos · environ \(ByteCountFormatStyle(style: .file).format(estimate.bytes))")
+                 : TripPreparation.summary(of: estimate))
         }
         .task {
             children = (try? repository.childGroups(of: group.id)) ?? []

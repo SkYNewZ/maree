@@ -41,7 +41,7 @@ struct SettingsView: View {
                     // photos de sortie share one registry, so this clears both.
                     Button("Revérifier les images") { Task { await pack.recheck() } }
                         .disabled(pack.state.isRunning)
-                    LabeledContent("Images en cache", value: formatted(cacheSize))
+                    LabeledContent("Images en cache", value: cacheSize.formattedBytes)
                 }
 
                 SwiftUI.Section("Préparer une sortie") {
@@ -56,8 +56,7 @@ struct SettingsView: View {
                         }
                     }
                     if let estimate {
-                        LabeledContent("À télécharger",
-                                       value: "\(estimate.photos) photos · environ \(formatted(estimate.bytes))")
+                        LabeledContent("À télécharger", value: TripPreparation.summary(of: estimate))
                     }
                     if trip.state.isRunning {
                         if let fraction = trip.state.fraction { ProgressView(value: fraction) }
@@ -112,12 +111,11 @@ struct SettingsView: View {
         guard let scope else { return }
         Task {
             await trip.start(scope)
-            cacheSize = await imageStore.cacheSizeInBytes()
-            estimate = try? await trip.estimate(for: scope)
+            // Both walk the cache directory, and neither needs the other's answer.
+            async let size = imageStore.cacheSizeInBytes()
+            async let remaining = trip.estimate(for: scope)
+            cacheSize = await size
+            estimate = try? await remaining
         }
-    }
-
-    private func formatted(_ bytes: Int64) -> String {
-        ByteCountFormatStyle(style: .file).format(bytes)
     }
 }

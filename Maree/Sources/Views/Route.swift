@@ -5,5 +5,8 @@ enum Route: Hashable {
     case group(TaxonGroup)
     case groupSpecies(TaxonGroup)
     case zone(Zone)
-    case gallery(speciesId: Int, position: Int)
+    /// Carries the photos rather than an id: the fiche has just fetched them, and
+    /// re-running the 7-part detail query to read one field of it is the only thing
+    /// the gallery would use an id for.
+    case gallery(photos: [Photo], position: Int)
 }

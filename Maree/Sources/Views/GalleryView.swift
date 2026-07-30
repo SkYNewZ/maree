@@ -2,16 +2,12 @@ import SwiftUI
 
 /// Full-screen photo viewer: swipe between photos, pinch to zoom.
 struct GalleryView: View {
-    let speciesId: Int
-    let initialPosition: Int
+    let photos: [Photo]
 
-    @Environment(\.repository) private var repository
-    @State private var photos: [Photo] = []
     @State private var position: Int
 
-    init(speciesId: Int, initialPosition: Int) {
-        self.speciesId = speciesId
-        self.initialPosition = initialPosition
+    init(photos: [Photo], initialPosition: Int) {
+        self.photos = photos
         _position = State(initialValue: initialPosition)
     }
 
@@ -19,7 +15,7 @@ struct GalleryView: View {
         TabView(selection: $position) {
             ForEach(photos) { photo in
                 VStack {
-                    RemoteImage(.photo(speciesId: speciesId, position: photo.position), contentMode: .fit)
+                    RemoteImage(.photo(speciesId: photo.speciesId, position: photo.position), contentMode: .fit)
                         .zoomable()
                     if let caption = photo.caption {
                         Text(caption)
@@ -42,7 +38,6 @@ struct GalleryView: View {
         // The bar sits on black, so its title and back button must use the dark
         // palette even when the system is in light mode.
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .task { photos = (try? repository.detail(id: speciesId))?.photos ?? [] }
     }
 }
 

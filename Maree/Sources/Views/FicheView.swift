@@ -86,7 +86,7 @@ struct FicheView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(detail.photos) { photo in
-                                NavigationLink(value: Route.gallery(speciesId: detail.species.id, position: photo.position)) {
+                                NavigationLink(value: Route.gallery(photos: detail.photos, position: photo.position)) {
                                     RemoteImage(.photo(speciesId: detail.species.id, position: photo.position))
                                         .frame(width: 110, height: 110)
                                         .clipShape(.rect(cornerRadius: 10))

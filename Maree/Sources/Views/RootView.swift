@@ -33,8 +33,8 @@ extension View {
                 GroupSpeciesView(group: group)
             case .zone(let zone):
                 ZoneView(zone: zone)
-            case .gallery(let speciesId, let position):
-                GalleryView(speciesId: speciesId, initialPosition: position)
+            case .gallery(let photos, let position):
+                GalleryView(photos: photos, initialPosition: position)
             }
         }
     }
