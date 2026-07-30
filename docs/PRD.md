@@ -178,7 +178,7 @@ informations de l'app.
 - FR-3 : les images proviennent exclusivement du bucket ; toute image affichée est écrite dans un cache disque persistant avant affichage.
 - FR-4 : une image indisponible affiche un placeholder — jamais de spinner infini ni d'erreur bloquante.
 - FR-5 : base illisible au démarrage = arrêt avec message clair (défaut de build, pas un cas utilisateur).
-- FR-6 : erreurs typées `LocalizedError` ; aucun `catch` muet.
+- FR-6 : erreurs typées ; aucun `catch` muet. Pas de `LocalizedError` en v1 : aucun texte d'erreur n'est présenté (FR-4 affiche un placeholder, FR-5 écrit sa phrase dans le `fatalError`).
 - FR-7 : les téléchargements explicites (pack, sortie) affichent progression, reprise/annulation et erreurs avec retry.
 
 ## 6. Hors périmètre (v1)
