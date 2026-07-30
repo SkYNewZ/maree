@@ -22,16 +22,19 @@ struct SearchView: View {
             .searchable(text: $query, prompt: "Nom commun ou scientifique")
             .mareeDestinations()
         }
+        .background(Theme.paper)
         .task(id: query) {
             results = (try? repository.search(query)) ?? []
         }
     }
 
     private var startScreen: some View {
-        ContentUnavailableView(
-            "Chercher une espèce",
-            systemImage: "magnifyingglass",
-            description: Text("Tapez un nom commun ou scientifique. La recherche fonctionne hors ligne, accents facultatifs.")
-        )
+        ContentUnavailableView {
+            Label("Chercher une espèce", systemImage: "magnifyingglass")
+        } description: {
+            Text("Tapez un nom commun ou scientifique. La recherche fonctionne hors ligne, accents facultatifs.")
+        }
+        .foregroundStyle(Theme.inkSoft)
+        .background(Theme.paper)
     }
 }

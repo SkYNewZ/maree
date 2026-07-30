@@ -42,6 +42,7 @@ struct SettingsView: View {
                         .disabled(pack.state.isRunning)
                     LabeledContent("Images en cache", value: cacheSize.formattedBytes)
                 }
+                .listRowBackground(Theme.surface)
 
                 SwiftUI.Section("Préparer une sortie") {
                     Picker("Contenu", selection: $scope) {
@@ -62,6 +63,7 @@ struct SettingsView: View {
                             .disabled(scope == nil || (estimate?.photos ?? 0) == 0)
                     }
                 }
+                .listRowBackground(Theme.surface)
 
                 SwiftUI.Section("À propos") {
                     LabeledContent("Base DORIS", value: dorisDate)
@@ -70,7 +72,10 @@ struct SettingsView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+                .listRowBackground(Theme.surface)
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.paper)
             .navigationTitle("Réglages")
         }
         .task {

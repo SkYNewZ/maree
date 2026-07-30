@@ -32,16 +32,14 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: fr.lemairepro.maree
         INFOPLIST_KEY_CFBundleDisplayName: Marée
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        # This toolchain's Info.plist synthesis silently drops
+        # INFOPLIST_KEY_UILaunchScreen_UIColorName (absent from its hardcoded key
+        # list, unlike _Generation — verified against the built Info.plist and the
+        # key list in SWBCore). INFOPLIST_FILE merges in the one key it can't
+        # synthesise; see Support/LaunchScreenInfo.plist.
+        INFOPLIST_FILE: Support/LaunchScreenInfo.plist
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         TARGETED_DEVICE_FAMILY: "1"
-        # TODO(task 6, app icon): this override replaces XcodeGen's smart default
-        # (ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon, applied only when the key
-        # is absent). Once set here, XcodeGen's default never reapplies — dropping
-        # an AppIcon.appiconset into Assets.xcassets is NOT enough on its own.
-        # Task 6 MUST also delete this line (or set it back to "AppIcon") in the
-        # same change, or the app builds green and ships with no icon.
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
     scheme:
       testTargets: [MareeTests]
 

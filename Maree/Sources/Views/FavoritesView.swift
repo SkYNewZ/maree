@@ -14,6 +14,7 @@ struct FavoritesView: View {
             )
             .mareeDestinations()
         }
+        .background(Theme.paper)
         .task(id: favorites.ids) {
             species = (try? repository.species(ids: favorites.ids)) ?? []
         }
