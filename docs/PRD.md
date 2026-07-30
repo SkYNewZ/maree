@@ -44,7 +44,8 @@ Sous-ensemble **Europe** de la base DORIS : zones 1 (côtes françaises), 2 (Atl
    - table **FTS5** précalculée (nom commun, nom scientifique, autres dénominations ;
      `unicode61 remove_diacritics 2`) ;
    - tables conservées : fiches, sections, photos (titres/légendes), groupes (arbre,
-     176 nœuds), zones, classification, dénominations ;
+     160 nœuds après élagage des branches sans espèce européenne), zones,
+     classification, dénominations ;
    - auto-vérification en fin d'exécution (comptages, absence de `{{` résiduel, FTS peuplée).
 2. **`generate-thumbs`** : télécharge la première photo de chaque fiche, réduit à
    **400 px, HEIC qualité 50** (15 Ko de moyenne, mesuré sur 39 échantillons), publie
@@ -106,7 +107,7 @@ nom et voir les résultats instantanément.
 par zone pour identifier une espèce que je ne sais pas nommer.
 
 **Critères d'acceptation :**
-- [ ] Drill-down dans l'arbre des groupes (176 nœuds, compteurs d'espèces) ; feuille → liste d'espèces
+- [ ] Drill-down dans l'arbre des groupes (160 nœuds, compteurs d'espèces) ; feuille → liste d'espèces
 - [ ] Entrée par zone géographique → liste d'espèces
 - [ ] Routage typé `enum Route: Hashable` dans une `NavigationStack` par onglet
 - [ ] Vérifié au simulateur (ios-simulator-skill)

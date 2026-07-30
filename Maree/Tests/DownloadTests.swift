@@ -43,7 +43,7 @@ struct DownloadTests {
         try? FileManager.default.removeItem(at: directory)
     }
 
-    /// 15 species carry a photoCount the bucket has no object for: their thumbnails
+    /// 16 species carry a photoCount the bucket has no object for: their thumbnails
     /// 404 forever. Once recorded, they must stop being counted as missing —
     /// otherwise every launch re-requests them and the pack never reads as complete.
     ///

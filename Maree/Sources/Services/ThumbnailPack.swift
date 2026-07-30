@@ -29,7 +29,7 @@ final class BulkDownload {
 
     private let store: ImageStore
 
-    /// Objects the bucket does not have: 15 species carry a `photoCount` with no
+    /// Objects the bucket does not have: 16 species carry a `photoCount` with no
     /// image behind it, so their downloads 404 forever. Without this list every
     /// launch would re-request them and the pack could never read as complete.
     /// It lives next to the images because it describes them.
@@ -131,7 +131,7 @@ final class BulkDownload {
     /// or a wrong path, not 2 837 absent objects: recording it would make the next
     /// launch skip the whole pack without a request and report « complètes » over an
     /// empty cache, with no way back short of reinstalling. A strict minority is the
-    /// weakest threshold that rules that out; the real ratio is 15 in 2 837.
+    /// weakest threshold that rules that out; the real ratio is 16 in 2 837.
     /// `internal` so the round trip is testable without a network.
     func record(_ names: [String], of total: Int) {
         guard !names.isEmpty, names.count < total else { return }

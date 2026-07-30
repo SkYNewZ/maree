@@ -45,6 +45,9 @@ open Maree.xcodeproj           # puis Cmd+R dans le simulateur
 
 `prepare-db.mjs` lit par défaut `~/src/skynewz/doris-pwa/DorisAndroid.db` (base source
 DORIS, non incluse au dépôt — projet personnel) ; passer `--source=<chemin>` sinon.
+Cette base est le seul intrant non reproductible du projet — extraite de l'app Android
+DORIS, 50,3 Mo (52 791 296 octets), base datée du 07/08/2025, copie locale du 20/06/2026,
+sha256 `354ca2f47a322b4a65eeffb942ef85800454baa000a38bf3a792ecbbb0d7b7a4`.
 
 Les vignettes se téléchargent au premier lancement de l'app (voir `tools/generate-thumbs.mjs`
 pour republier le pack sur le bucket ; déjà fait pour la v1, inutile en usage normal).

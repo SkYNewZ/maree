@@ -173,7 +173,7 @@ final class ImageStore {
 
 enum ImageError: LocalizedError {
     case notAvailable
-    /// HTTP 404: the bucket holds no such object and never will. 15 species carry
+    /// HTTP 404: the bucket holds no such object and never will. 16 species carry
     /// a photoCount with no image behind it.
     case notFound
 

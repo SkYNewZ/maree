@@ -12,8 +12,10 @@ struct RootView: View {
         }
         // Fills the thumbnail cache in the background. Cancelling this task (the
         // view going away) does not stop the run: the pack owns an unstructured
-        // task, and the download must outlive any one screen. `.utility` so the
-        // 2 800 file run is preempted by whatever the user is doing right now.
+        // task, and the download must outlive any one screen. `.utility` lowers
+        // the priority of the awaits themselves — `startIfNeeded()` is MainActor
+        // isolated, so what it does *on* the main actor is not deprioritised; that
+        // is why the file listing and the species query are `@concurrent` instead.
         .task(priority: .utility) { await pack.startIfNeeded() }
     }
 }
