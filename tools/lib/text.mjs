@@ -11,6 +11,9 @@ function stripMarkup(text) {
 
 function stripHtml(text) {
   return text
+    // A few texts double-escape their inline tags ("&lt;em&gt;"). Only a bare tag
+    // name is markup: "&lt; 4 mm" and the French "&lt;&lt;citation&gt;&gt;" stay literal.
+    .replace(/(?<!&lt;)&lt;(\/?[a-zA-Z][a-zA-Z0-9]*)&gt;(?!&gt;)/g, '<$1>')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(?:p|div|li)>/gi, '\n')
     .replace(/<[^>]+>/g, '')

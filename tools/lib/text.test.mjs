@@ -20,7 +20,8 @@ test('deroule les liens et supprime le markup inconnu', () => {
 
 test('retire les balises HTML et decode les entites', () => {
   assert.equal(clean('<p>Texte&nbsp;&amp;&nbsp;suite</p>'), 'Texte & suite')
-  assert.equal(clean('a &lt;b&gt; c &quot;d&quot; &#39;e&#39;'), 'a <b> c "d" \'e\'')
+  assert.equal(clean('a &lt;b&gt; c &quot;d&quot; &#39;e&#39;'), 'a c "d" \'e\'')
+  assert.equal(clean('taille &lt; 4 mm, &lt;&lt;citation&gt;&gt;'), 'taille < 4 mm, <<citation>>')
 })
 
 test('normalise les espaces horizontaux sans ecraser les retours', () => {
