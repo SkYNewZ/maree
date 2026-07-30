@@ -93,7 +93,6 @@ struct TaxonGroup: Codable, FetchableRecord, TableRecord, Identifiable, Hashable
 struct Zone: Codable, FetchableRecord, TableRecord, Identifiable, Hashable {
     static let databaseTableName = "zone"
     var id: Int
-    var parentId: Int?
     var name: String
 }
 
