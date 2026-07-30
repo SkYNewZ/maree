@@ -1,0 +1,14 @@
+# Generated application database (run tools/prepare-db.mjs to rebuild)
+*.db
+*.db-shm
+*.db-wal
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+.build/
+DerivedData/
+xcuserdata/
+
+# macOS
+.DS_Store
