@@ -11,7 +11,6 @@ struct SettingsView: View {
     @Environment(\.tripPreparation) private var trip
     @State private var scope: TripScope?
     @State private var estimate: (photos: Int, bytes: Int64)?
-    @State private var groups: [TaxonGroup] = []
     @State private var zones: [Zone] = []
     @State private var dorisDate = "—"
     @State private var speciesCount = "—"
@@ -24,7 +23,7 @@ struct SettingsView: View {
                 // SwiftUI's type module-wide.
                 SwiftUI.Section("Hors ligne") {
                     LabeledContent("Vignettes") { packStatus }
-                    if pack.state.isRunning, let fraction = pack.state.fraction {
+                    if let fraction = pack.state.fraction {
                         ProgressView(value: fraction)
                     }
                     // ~46 Mo, possibly on a metered connection. Suspending is safe and
@@ -48,9 +47,6 @@ struct SettingsView: View {
                     Picker("Contenu", selection: $scope) {
                         Text("Choisir…").tag(TripScope?.none)
                         Text("Mes favoris (\(favorites.ids.count))").tag(TripScope?.some(.favorites))
-                        ForEach(groups) { group in
-                            Text(group.name).tag(TripScope?.some(.group(group)))
-                        }
                         ForEach(zones) { zone in
                             Text(zone.name).tag(TripScope?.some(.zone(zone)))
                         }
@@ -78,7 +74,6 @@ struct SettingsView: View {
             .navigationTitle("Réglages")
         }
         .task {
-            groups = (try? repository.rootGroups()) ?? []
             zones = (try? repository.zones()) ?? []
             dorisDate = (try? repository.meta("dorisDate")) ?? "—"
             speciesCount = (try? repository.meta("speciesCount")).flatMap(Int.init)?.formatted() ?? "—"
