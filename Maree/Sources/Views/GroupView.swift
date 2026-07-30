@@ -5,9 +5,12 @@ struct GroupView: View {
     let group: TaxonGroup
 
     @Environment(\.repository) private var repository
+    @Environment(\.tripPreparation) private var trip
     @State private var children: [TaxonGroup] = []
     @State private var species: [Species] = []
     @State private var loaded = false
+    @State private var estimate: (photos: Int, bytes: Int64)?
+    @State private var confirming = false
 
     var body: some View {
         Group {
@@ -40,6 +43,35 @@ struct GroupView: View {
         // navigation title is already correct during the loading state,
         // instead of flashing in once children/species resolve.
         .navigationTitle(group.name)
+        // Where the scope of a dive is actually decided: nobody prepares a sortie
+        // for « ANIMAUX », they prepare it for the group they are looking at. The
+        // run itself is followed and cancelled in Réglages, which shares the instance.
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if trip.state.isRunning {
+                    ProgressView()
+                } else {
+                    Button("Préparer", systemImage: "arrow.down.circle") {
+                        Task {
+                            estimate = try? await trip.estimate(for: .group(group))
+                            confirming = estimate != nil
+                        }
+                    }
+                }
+            }
+        }
+        .alert("Préparer « \(group.name) » hors ligne", isPresented: $confirming, presenting: estimate) { estimate in
+            // No action at all when there is nothing to fetch: SwiftUI then shows
+            // its own dismiss button, which is the whole of what is left to do.
+            if estimate.photos > 0 {
+                Button("Télécharger") { Task { await trip.start(.group(group)) } }
+                Button("Annuler", role: .cancel) {}
+            }
+        } message: { estimate in
+            Text(estimate.photos == 0
+                 ? "Toutes les photos de ce groupe sont déjà en cache."
+                 : "\(estimate.photos) photos · environ \(ByteCountFormatStyle(style: .file).format(estimate.bytes))")
+        }
         .task {
             children = (try? repository.childGroups(of: group.id)) ?? []
             if children.isEmpty {

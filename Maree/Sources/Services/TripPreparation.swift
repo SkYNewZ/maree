@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import SwiftUI
 
 enum TripScope: Hashable {
     /// Carries no ids: they are read when the estimate or the download runs. With
@@ -15,6 +16,12 @@ enum TripScope: Hashable {
 @Observable
 @MainActor
 final class TripPreparation {
+    /// The instance the environment hands out. `@Entry` defaults are computed, so
+    /// without this stored `static let` a trip started while browsing and the
+    /// progress shown in Réglages would be two different runs — both writing the
+    /// same unavailable-photos registry.
+    static let shared = TripPreparation()
+
     /// Measured average of a full-size photo in the bucket (51 KB over 39 samples).
     /// Only ever shown as an estimate — photo weights range over an order of magnitude.
     private static let averagePhotoBytes: Int64 = 52_000
@@ -68,4 +75,8 @@ final class TripPreparation {
         case .zone(let zone): try repository.species(inZone: zone.id)
         }
     }
+}
+
+extension EnvironmentValues {
+    @Entry var tripPreparation = TripPreparation.shared
 }

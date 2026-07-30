@@ -6,9 +6,9 @@ struct SettingsView: View {
     @Environment(\.imageStore) private var imageStore
     @Environment(\.thumbnailPack) private var pack
 
-    /// Owned by the screen: a trip is prepared here and nowhere else. The defaults
-    /// resolve to the very instances the environment hands out.
-    @State private var trip = TripPreparation()
+    /// Shared with the « Préparer » action on a group: whichever starts the run,
+    /// this screen is where it is followed and cancelled.
+    @Environment(\.tripPreparation) private var trip
     @State private var scope: TripScope?
     @State private var estimate: (photos: Int, bytes: Int64)?
     @State private var groups: [TaxonGroup] = []

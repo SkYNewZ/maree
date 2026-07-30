@@ -131,11 +131,32 @@ struct DownloadTests {
         #expect(scope == .favorites)
     }
 
+    /// The five roots are 1 Go and a whole kingdom; nobody prepares a dive for
+    /// « ANIMAUX ». Preparing the group being browsed is the point, so a sub-group
+    /// must be a strictly smaller scope than the root it hangs from.
+    @Test("un sous-groupe est un périmètre plus petit que sa racine")
+    func subGroupIsASmallerScope() async throws {
+        let repository = try makeRepository()
+        let trip = TripPreparation(store: ImageStore(directory: makeDirectory()),
+                                   repository: repository,
+                                   favorites: Favorites(defaults: makeDefaults()))
+        let root = try #require(try repository.rootGroups().max { $0.speciesCount < $1.speciesCount })
+        let child = try #require(try repository.childGroups(of: root.id).first)
+
+        let whole = try await trip.estimate(for: .group(root)).photos
+        let part = try await trip.estimate(for: .group(child)).photos
+        #expect(part > 0)
+        #expect(part < whole)
+    }
+
     /// `@Entry` environment defaults are computed, so a fresh `ThumbnailPack()`
     /// there would give every reader its own progress state and restart the pack.
     @Test("l'environnement expose l'unique instance partagée")
     func environmentExposesSharedPack() {
         #expect(EnvironmentValues().thumbnailPack === ThumbnailPack.shared)
+        // A trip started while browsing and the progress shown in Réglages must be
+        // the same run — and one writer on the unavailable-photos registry.
+        #expect(EnvironmentValues().tripPreparation === TripPreparation.shared)
     }
 
     private func makeDefaults() -> UserDefaults {
