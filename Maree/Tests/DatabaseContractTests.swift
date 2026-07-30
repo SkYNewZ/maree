@@ -9,8 +9,8 @@ struct DatabaseContractTests {
 
     @Test("la base contient le sous-ensemble européen attendu")
     func speciesCount() throws {
-        // fetchAll, not fetchCount: decoding every row also proves each `status`
-        // literal maps to a SpeciesStatus case, which a count would never touch.
+        // fetchAll, not fetchCount: decoding every row also proves every column
+        // decodes without throwing, which a count would never touch.
         let species = try database.reader.read { db in
             try Species.fetchAll(db)
         }

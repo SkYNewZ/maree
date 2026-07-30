@@ -28,7 +28,6 @@ if (!existsSync(SOURCE)) {
   process.exit(1)
 }
 
-const STATUS_BY_ETAT = { 4: 'published', 5: 'proposed' }
 const PICTO_REGULATED = '0'
 const PICTO_DANGEROUS = '1'
 
@@ -64,7 +63,7 @@ db.exec('BEGIN')
 
 // ── Selected fiches: internal _id → public numeroFiche ────────────────────────
 const fiches = db.prepare(`
-  SELECT f._id, f.numeroFiche, f.nomScientifique, f.nomCommun, f.etatFiche,
+  SELECT f._id, f.numeroFiche, f.nomScientifique, f.nomCommun,
          f.pictogrammes, f.groupe_id, f.dateModification
   FROM src.fiche f
   WHERE f._id IN (
@@ -118,9 +117,9 @@ const ranksOf = db.prepare(`
 const zonesOf = db.prepare('SELECT ZoneGeographique_id FROM src.fiches_ZonesGeographiques WHERE Fiche_id = ?')
 
 const insertSpecies = db.prepare(`
-  INSERT INTO species (id, commonName, scientificName, groupId, status, regulated, dangerous,
+  INSERT INTO species (id, commonName, scientificName, groupId, regulated, dangerous,
                        photoCount, depthMin, depthMax, tempMin, tempMax, updatedAt, sourceUrl)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `)
 const insertSection = db.prepare('INSERT OR REPLACE INTO section (speciesId, kind, text) VALUES (?, ?, ?)')
 const insertPhoto = db.prepare('INSERT INTO photo (speciesId, position, caption) VALUES (?, ?, ?)')
@@ -161,7 +160,6 @@ for (const f of fiches) {
 
   insertSpecies.run(
     id, commonName, scientificName, f.groupe_id,
-    STATUS_BY_ETAT[f.etatFiche] ?? 'inProgress',
     pictos.has(PICTO_REGULATED) ? 1 : 0,
     pictos.has(PICTO_DANGEROUS) ? 1 : 0,
     photos.length,

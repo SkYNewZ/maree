@@ -7,7 +7,6 @@ CREATE TABLE species (
   commonName       TEXT NOT NULL,
   scientificName   TEXT NOT NULL,
   groupId          INTEGER NOT NULL REFERENCES taxonGroup(id),
-  status           TEXT NOT NULL,         -- 'published' | 'inProgress' | 'proposed'
   regulated        INTEGER NOT NULL,      -- 0 | 1
   dangerous        INTEGER NOT NULL,      -- 0 | 1
   photoCount       INTEGER NOT NULL,

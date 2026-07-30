@@ -1,10 +1,6 @@
 import Foundation
 import GRDB
 
-enum SpeciesStatus: String, Codable, DatabaseValueConvertible {
-    case published, inProgress, proposed
-}
-
 /// Section kinds, mirroring the keys of tools/lib/sections.mjs. The order of
 /// `allCases` is the display order on the species screen, and lives only here —
 /// the pipeline stores a kind per section and has no say in how they are shown.
@@ -40,7 +36,6 @@ struct Species: Codable, FetchableRecord, TableRecord, Identifiable, Hashable {
     var commonName: String
     var scientificName: String
     var groupId: Int
-    var status: SpeciesStatus
     var regulated: Bool
     var dangerous: Bool
     var photoCount: Int
