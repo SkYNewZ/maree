@@ -20,7 +20,7 @@ struct FicheView: View {
                 ProgressView().padding(.top, 80)
             }
         }
-        .navigationTitle(detail?.species.commonName ?? "")
+        .navigationTitle(detail?.species.displayName ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if let detail {
@@ -56,7 +56,7 @@ struct FicheView: View {
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(detail.species.commonName).font(.title2.bold())
+                Text(detail.species.displayName).font(.title2.bold())
                 Text(detail.species.scientificName).font(.headline).italic().foregroundStyle(.secondary)
 
                 ViewThatFits(in: .horizontal) {

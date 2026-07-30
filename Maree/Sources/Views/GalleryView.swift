@@ -60,9 +60,12 @@ private struct Zoomable: ViewModifier {
     func body(content: Content) -> some View {
         content
             .scaleEffect(scale)
-            // ponytail: no panning, so a zoomed photo shows only its centre.
-            // Double tap is the way back out; add a drag offset if that proves
-            // too coarse in the water.
+            // ponytail: two known ceilings, both fine for inspecting a photo.
+            // No panning, so a zoomed photo shows only its centre — add a drag
+            // offset if that proves too coarse in the water. And `magnification`
+            // restarts at 1 each gesture, so pinches do not accumulate: reaching
+            // 4× takes one wide pinch, not several. Multiply into a stored base
+            // scale if that becomes annoying. Double tap is the way back out.
             .gesture(
                 MagnifyGesture()
                     .onChanged { scale = max(1, $0.magnification) }

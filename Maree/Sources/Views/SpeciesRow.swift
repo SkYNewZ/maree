@@ -10,7 +10,7 @@ struct SpeciesRow: View {
                 .clipShape(.rect(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(species.commonName)
+                Text(species.displayName)
                     .font(.body.weight(.medium))
                     .lineLimit(2)
                 Text(species.scientificName)

@@ -58,6 +58,11 @@ struct Species: Codable, FetchableRecord, TableRecord, Identifiable, Hashable {
     var updatedAt: String?
     var sourceUrl: String
 
+    /// 4 species (all diatoms) ship with a blank commonName; the scientific name is
+    /// the only identity they have. `isEmpty` rather than a trim: those 4 store an
+    /// empty string, and no row in the column has surrounding whitespace.
+    var displayName: String { commonName.isEmpty ? scientificName : commonName }
+
     var depthRange: ClosedRange<Int>? {
         guard let depthMin, let depthMax else { return nil }
         return depthMin...depthMax

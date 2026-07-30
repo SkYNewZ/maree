@@ -19,6 +19,15 @@ struct FicheSections: View {
                 }
             }
 
+            // 48 species have zones but no distribution section; without this their
+            // geography would never render.
+            if !detail.zones.isEmpty, detail.section(.distribution) == nil {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(SectionKind.distribution.title).font(.headline)
+                    zoneChips
+                }
+            }
+
             if !detail.frenchNames.isEmpty || !detail.otherNames.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Autres noms").font(.headline)

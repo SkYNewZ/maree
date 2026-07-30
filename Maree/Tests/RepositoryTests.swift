@@ -104,6 +104,19 @@ struct RepositoryTests {
         #expect(detail.section(.identification) != nil)
     }
 
+    @Test("le nom affiché retombe sur le nom scientifique quand le nom commun manque")
+    func displayNameFallsBackToScientificName() throws {
+        // 1437 has a common name, 6053 (a diatom) ships with an empty one. Real ids,
+        // so this fails if the scraper ever starts filling — or emptying — the column.
+        let named = try #require(try repository.detail(id: 1437)).species
+        #expect(named.displayName == "Oursin violet")
+
+        let unnamed = try #require(try repository.detail(id: 6053)).species
+        #expect(unnamed.commonName.isEmpty)
+        #expect(unnamed.displayName == unnamed.scientificName)
+        #expect(!unnamed.displayName.isEmpty)
+    }
+
     @Test("un identifiant inconnu renvoie nil")
     func unknownDetailIsNil() throws {
         #expect(try repository.detail(id: 999_999) == nil)
