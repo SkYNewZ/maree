@@ -17,26 +17,17 @@ enum DownloadState: Equatable {
     var isRunning: Bool { if case .running = self { true } else { false } }
 }
 
-/// One bulk download job: a bounded worker pool, a progress state, and the set of
-/// objects the bucket has answered 404 for.
+/// One bulk download job: a bounded worker pool and a progress state.
 ///
 /// The thumbnail pack and trip preparation are the same machine with different
-/// input, so the pool, cancellation and progress rules live here once.
+/// input, so the pool, cancellation and progress rules live here once. What the
+/// origin does not have is `ImageStore`'s business, not a run's.
 @Observable
 @MainActor
 final class BulkDownload {
     private enum Outcome: Sendable { case ok, unavailable, failed }
 
     private let store: ImageStore
-
-    /// Objects the bucket does not have: 16 species carry a `photoCount` with no
-    /// image behind it, so their downloads 404 forever. Without this list every
-    /// launch would re-request them and the pack could never read as complete.
-    /// It lives next to the images because it describes them.
-    /// Cleared by `forgetUnavailable()`, which Réglages exposes: a bucket outage that
-    /// 404s part of the pack is otherwise recorded forever.
-    private let registry: URL
-    private var unavailable: Set<String>
 
     private var task: Task<Void, Never>?
 
@@ -46,23 +37,19 @@ final class BulkDownload {
 
     private(set) var state: DownloadState = .idle
 
-    init(store: ImageStore, registryName: String) {
+    init(store: ImageStore) {
         self.store = store
-        registry = store.directory.appending(path: registryName)
-        unavailable = Set((try? JSONDecoder().decode([String].self, from: Data(contentsOf: registry))) ?? [])
     }
 
-    func isKnownUnavailable(_ kind: ImageKind) -> Bool {
-        unavailable.contains(kind.cacheFileName)
-    }
-
-    /// Forgets every recorded 404. `record` only rules out a *total* origin failure:
-    /// a partial one — a bucket 404ing a third of the pack for an hour — is recorded
-    /// permanently, and the pack then reports « complètes » over a cache that is not.
-    /// This is the way back, and the user's only one.
-    func forgetUnavailable() {
-        unavailable.removeAll()
-        try? FileManager.default.removeItem(at: registry)
+    /// What a run still has to fetch: neither on disk nor recorded as absent from the
+    /// origin. One directory listing rather than one `fileExists` per file — the
+    /// widest trip scope is 20 048 of them — and it runs while `kinds` is still being
+    /// queried, since the two are independent.
+    func missing(from kinds: () async throws -> [ImageKind]) async rethrows -> [ImageKind] {
+        async let listing = store.cachedFileNames()
+        let candidates = try await kinds()
+        let cached = await listing
+        return candidates.filter { !store.isUnavailable($0) && !cached.contains($0.cacheFileName) }
     }
 
     /// Downloads `kinds`, at most `poolSize` at a time — an unbounded fan-out of a
@@ -85,7 +72,7 @@ final class BulkDownload {
         let task = Task { [store] in
             var done = 0
             var failed = 0
-            var missing: [String] = []
+            var missing: [ImageKind] = []
             await withTaskGroup(of: (ImageKind, Outcome).self) { group in
                 var iterator = kinds.makeIterator()
                 for _ in 0..<poolSize {
@@ -98,7 +85,7 @@ final class BulkDownload {
                     done += 1
                     switch outcome {
                     case .ok: break
-                    case .unavailable: missing.append(kind.cacheFileName)
+                    case .unavailable: missing.append(kind)
                     case .failed: failed += 1
                     }
                     if done % progressEvery == 0, self.generation == generation {
@@ -133,10 +120,9 @@ final class BulkDownload {
     /// empty cache, with no way back short of reinstalling. A strict minority is the
     /// weakest threshold that rules that out; the real ratio is 16 in 2 837.
     /// `internal` so the round trip is testable without a network.
-    func record(_ names: [String], of total: Int) {
-        guard !names.isEmpty, names.count < total else { return }
-        unavailable.formUnion(names)
-        try? JSONEncoder().encode(unavailable.sorted()).write(to: registry, options: .atomic)
+    func record(_ kinds: [ImageKind], of total: Int) {
+        guard !kinds.isEmpty, kinds.count < total else { return }
+        store.markUnavailable(kinds)
     }
 
     private static func attempt(_ kind: ImageKind, store: ImageStore) async -> (ImageKind, Outcome) {
@@ -173,7 +159,7 @@ final class ThumbnailPack {
     init(store: ImageStore = .shared, repository: SpeciesRepository) {
         self.store = store
         self.repository = repository
-        downloads = BulkDownload(store: store, registryName: "unavailable-thumbnails.json")
+        downloads = BulkDownload(store: store)
     }
 
     func missingCount() async -> Int { await missing().count }
@@ -182,27 +168,27 @@ final class ThumbnailPack {
         await downloads.run(await missing(), poolSize: 6, progressEvery: 25)
     }
 
-    /// Asks the bucket again for the thumbnails a previous run recorded as absent.
+    /// Asks the bucket again for everything a previous run recorded as absent —
+    /// trip photos included, since one store holds them all. The thumbnails are
+    /// re-fetched right away; the photos, the next time a sortie is prepared.
     func recheck() async {
-        downloads.forgetUnavailable()
+        store.forgetUnavailable()
         await startIfNeeded()
     }
 
     func cancel() { downloads.cancel() }
 
-    /// One directory listing rather than 2 837 `fileExists` calls, and the species
-    /// query off the main actor: this runs on every launch, from `RootView`'s `.task`.
+    /// The species query stays off the main actor: this runs on every launch, from
+    /// `RootView`'s `.task`.
     private func missing() async -> [ImageKind] {
-        let ids = await allSpeciesIds()
-        let cached = await store.cachedFileNames()
-        return ids
-            .map { ImageKind.thumbnail(speciesId: $0) }
-            .filter { !downloads.isKnownUnavailable($0) && !cached.contains($0.cacheFileName) }
+        await downloads.missing {
+            await self.speciesIdsWithPhotos().map { ImageKind.thumbnail(speciesId: $0) }
+        }
     }
 
     @concurrent
-    private nonisolated func allSpeciesIds() async -> [Int] {
-        (try? repository.allSpeciesIds()) ?? []
+    private nonisolated func speciesIdsWithPhotos() async -> [Int] {
+        (try? repository.speciesIdsWithPhotos()) ?? []
     }
 }
 

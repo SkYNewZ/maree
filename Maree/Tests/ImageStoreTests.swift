@@ -121,11 +121,38 @@ struct ImageStoreTests {
         let speciesId = 999_011
         try #require(makePNG())
             .write(to: directory.appending(path: ImageKind.thumbnail(speciesId: speciesId).cacheFileName))
+        // Recorded as absent from the bucket: the display path stops requesting it,
+        // and must still fall back rather than short-circuit to a placeholder.
+        store.markUnavailable([.photo(speciesId: speciesId, position: 0)])
 
         #expect(await store.image(for: .photo(speciesId: speciesId, position: 0)) != nil)
         // Only the first photo stands in for the fiche header; the gallery keeps its
         // placeholders rather than repeating the same image under every position.
         #expect(await store.image(for: .photo(speciesId: speciesId, position: 1)) == nil)
+        try? FileManager.default.removeItem(at: directory)
+    }
+
+    /// One registry per bulk consumer used to live beside the images. Dropping them
+    /// on upgrade would not just cost a retry round: a run made only of the forgotten
+    /// 404s is a total failure by `record`'s threshold, so they would never be
+    /// recorded again and every launch would re-request them.
+    @Test("les deux anciens registres 404 fusionnent en un seul")
+    func legacyRegistriesAreMerged() async throws {
+        let directory = URL.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let thumbnail = ImageKind.thumbnail(speciesId: 1911)
+        let photo = ImageKind.photo(speciesId: 3022, position: 2)
+        for (name, kind) in [("unavailable-thumbnails.json", thumbnail), ("unavailable-photos.json", photo)] {
+            try JSONEncoder().encode([kind.cacheFileName]).write(to: directory.appending(path: name))
+        }
+
+        let store = ImageStore(directory: directory)
+        #expect(store.isUnavailable(thumbnail))
+        #expect(store.isUnavailable(photo))
+        // No orphans left behind, and the merge survives the next launch.
+        let remaining = try FileManager.default.contentsOfDirectory(atPath: directory.path)
+        #expect(remaining == ["unavailable.json"])
+        #expect(ImageStore(directory: directory).isUnavailable(photo))
         try? FileManager.default.removeItem(at: directory)
     }
 

@@ -49,23 +49,73 @@ final class ImageStore {
     /// portal sends back is exactly what the cache must refuse to keep.
     private let session: URLSession
 
+    /// The negative half of the cache: objects the bucket answers 404 for. 16 species
+    /// carry a `photoCount` with no image behind it, so their downloads fail forever.
+    /// It belongs here rather than in a bulk run because it is a fact about the
+    /// origin — and because the display path must skip them too, or every appearance
+    /// of one of those rows fires a fresh doomed request.
+    private var unavailable: Set<String>
+    private let registry: URL
+
     init(directory: URL? = nil, session: URLSession = .shared) {
-        self.directory = directory ?? URL.applicationSupportDirectory.appending(path: "Images")
+        let images = directory ?? URL.applicationSupportDirectory.appending(path: "Images")
+        self.directory = images
         self.session = session
         memory.countLimit = 200
-        try? FileManager.default.createDirectory(at: self.directory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: images, withIntermediateDirectories: true)
+
+        // One registry per bulk consumer used to live here; the key spaces are
+        // disjoint (`t-` / `p-`), so an older install's two files merge into this one.
+        // Merged rather than dropped: a later run made only of the forgotten 404s is
+        // a *total* failure by `BulkDownload.record`'s threshold and would never be
+        // recorded again — the 16 would be re-requested on every launch, forever.
+        registry = images.appending(path: "unavailable.json")
+        let legacy = ["unavailable-thumbnails.json", "unavailable-photos.json"]
+            .map { images.appending(path: $0) }
+        unavailable = Set(([registry] + legacy).flatMap(Self.names(in:)))
 
         // Up to a gigabyte of images that can always be fetched again has no place
         // in an iCloud backup. Set on every launch: the flag is per-file and a
         // directory created by an older build would never have carried it.
-        var url = self.directory
+        var url = images
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? url.setResourceValues(values)
+
+        if legacy.contains(where: { FileManager.default.fileExists(atPath: $0.path) }) {
+            save()
+            legacy.forEach { try? FileManager.default.removeItem(at: $0) }
+        }
     }
 
     func cachedFileExists(for kind: ImageKind) -> Bool {
         FileManager.default.fileExists(atPath: fileURL(for: kind).path)
+    }
+
+    func isUnavailable(_ kind: ImageKind) -> Bool { unavailable.contains(kind.cacheFileName) }
+
+    /// Records objects the origin answered 404 for. Whether a 404 is trustworthy is
+    /// a bulk-run judgement and stays in `BulkDownload.record(_:of:)`.
+    func markUnavailable(_ kinds: [ImageKind]) {
+        unavailable.formUnion(kinds.map(\.cacheFileName))
+        save()
+    }
+
+    /// Forgets every recorded 404. `BulkDownload.record` only rules out a *total*
+    /// origin failure: a partial one — a bucket 404ing a third of the pack for an
+    /// hour — is recorded permanently, and the pack then reports « complètes » over
+    /// a cache that is not. This is the way back, and the user's only one.
+    func forgetUnavailable() {
+        unavailable.removeAll()
+        try? FileManager.default.removeItem(at: registry)
+    }
+
+    private func save() {
+        try? JSONEncoder().encode(unavailable.sorted()).write(to: registry, options: .atomic)
+    }
+
+    private static func names(in url: URL) -> [String] {
+        (try? JSONDecoder().decode([String].self, from: Data(contentsOf: url))) ?? []
     }
 
     /// What the cache holds, in one listing. Bulk callers ask about thousands of
@@ -88,13 +138,15 @@ final class ImageStore {
         if let existing = inFlight[kind] { return await existing.value }
 
         // Only the file I/O leaves the main actor; decoding stays on it, so `UIImage`
-        // never crosses an isolation boundary.
+        // never crosses an isolation boundary. An object the bucket has already
+        // answered 404 for is never asked for again: the fallback below still runs.
+        let known = isUnavailable(kind)
         let task = Task<UIImage?, Never> { [directory, session] in
             let url = directory.appending(path: kind.cacheFileName)
             if let data = await Self.readFile(url), let image = UIImage(data: data) {
                 return image
             }
-            guard let data = try? await Self.fetch(kind, session: session) else { return nil }
+            guard !known, let data = try? await Self.fetch(kind, session: session) else { return nil }
             try? await Self.writeFile(data, to: url)
             return UIImage(data: data)
         }
@@ -175,13 +227,13 @@ final class ImageStore {
     }
 }
 
-enum ImageError: LocalizedError {
+/// No `LocalizedError`: every throw and catch site inspects the case, and a failed
+/// image renders `RemoteImage`'s placeholder rather than a message.
+enum ImageError: Error {
     case notAvailable
     /// HTTP 404: the bucket holds no such object and never will. 16 species carry
     /// a photoCount with no image behind it.
     case notFound
-
-    var errorDescription: String? { "Cette photo n'est pas disponible." }
 }
 
 extension EnvironmentValues {

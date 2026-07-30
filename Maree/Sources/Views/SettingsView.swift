@@ -37,8 +37,9 @@ struct SettingsView: View {
                     }
                     // A bucket outage 404ing part of the pack is recorded permanently:
                     // without this the app would keep reporting « complètes » over a
-                    // cache that is missing whatever was down that day.
-                    Button("Revérifier les vignettes") { Task { await pack.recheck() } }
+                    // cache that is missing whatever was down that day. Vignettes and
+                    // photos de sortie share one registry, so this clears both.
+                    Button("Revérifier les images") { Task { await pack.recheck() } }
                         .disabled(pack.state.isRunning)
                     LabeledContent("Images en cache", value: formatted(cacheSize))
                 }

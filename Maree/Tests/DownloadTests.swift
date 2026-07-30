@@ -30,6 +30,9 @@ struct DownloadTests {
         let directory = makeDirectory()
         let store = ImageStore(directory: directory)
         let repository = try makeRepository()
+        // What the corpus actually holds: how many species there are is
+        // `DatabaseContractTests`' subject, not this one's.
+        let total = try repository.speciesIdsWithPhotos().count
 
         // Pre-seed two thumbnails as if a previous run had downloaded them.
         let seeded = try repository.search("oursin", limit: 2).map(\.id)
@@ -39,7 +42,7 @@ struct DownloadTests {
         }
 
         let pack = ThumbnailPack(store: store, repository: repository)
-        #expect(await pack.missingCount() == 2837 - seeded.count)
+        #expect(await pack.missingCount() == total - seeded.count)
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -53,14 +56,14 @@ struct DownloadTests {
     @Test("une vignette absente du bucket n'est plus recomptée aux lancements suivants")
     func packSkipsKnownUnavailable() async throws {
         let directory = makeDirectory()
-        let store = ImageStore(directory: directory)
-        let names = [1911, 3022].map { ImageKind.thumbnail(speciesId: $0).cacheFileName }
-        BulkDownload(store: store, registryName: "unavailable-thumbnails.json")
-            .record(names, of: 2837)
+        let repository = try makeRepository()
+        let total = try repository.speciesIdsWithPhotos().count
+        let absent = [1911, 3022].map { ImageKind.thumbnail(speciesId: $0) }
+        BulkDownload(store: ImageStore(directory: directory)).record(absent, of: total)
 
-        // A separate instance, reading only what the previous one left on disk.
-        let pack = ThumbnailPack(store: store, repository: try makeRepository())
-        #expect(await pack.missingCount() == 2837 - 2)
+        // A separate store *and* pack, reading only what the run left on disk.
+        let pack = ThumbnailPack(store: ImageStore(directory: directory), repository: repository)
+        #expect(await pack.missingCount() == total - absent.count)
         try? FileManager.default.removeItem(at: directory)
     }
 
@@ -71,18 +74,17 @@ struct DownloadTests {
     @Test("un run intégralement en échec n'est pas enregistré : c'est l'origine qui est cassée")
     func brokenOriginIsNotRecorded() {
         let directory = makeDirectory()
-        let downloads = BulkDownload(store: ImageStore(directory: directory),
-                                     registryName: "unavailable-thumbnails.json")
+        let store = ImageStore(directory: directory)
+        let downloads = BulkDownload(store: store)
         let all = [1, 2, 3].map { ImageKind.thumbnail(speciesId: $0) }
 
-        downloads.record(all.map(\.cacheFileName), of: all.count)
-        #expect(all.allSatisfy { !downloads.isKnownUnavailable($0) })
-        #expect(!FileManager.default.fileExists(
-            atPath: directory.appending(path: "unavailable-thumbnails.json").path))
+        downloads.record(all, of: all.count)
+        #expect(all.allSatisfy { !store.isUnavailable($0) })
+        #expect(!FileManager.default.fileExists(atPath: directory.appending(path: "unavailable.json").path))
 
         // One success in the same run is enough to trust the rest as genuine 404s.
-        downloads.record(all.map(\.cacheFileName), of: all.count + 1)
-        #expect(all.allSatisfy { downloads.isKnownUnavailable($0) })
+        downloads.record(all, of: all.count + 1)
+        #expect(all.allSatisfy { store.isUnavailable($0) })
         try? FileManager.default.removeItem(at: directory)
     }
 
