@@ -11,6 +11,7 @@ import { parseArgs, promisify } from 'node:util'
 import { writeFile, mkdtemp, rm, stat } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import { parseLimit } from './lib/args.mjs'
 
 const run = promisify(execFile)
 
@@ -28,7 +29,19 @@ const { values: args } = parseArgs({
   },
 })
 const DB = resolve(args.db ?? 'Maree/Resources/maree.db')
-const LIMIT = args.limit ? Number(args.limit) : null
+
+let LIMIT
+try {
+  LIMIT = parseLimit(args.limit)
+} catch (error) {
+  console.error(error.message)
+  process.exit(1)
+}
+if (LIMIT === 0) {
+  console.log('--limit=0: nothing to do')
+  process.exit(0)
+}
+
 const FORCE = args.force ?? false
 
 const db = new DatabaseSync(DB, { readOnly: true })
