@@ -71,4 +71,41 @@ struct ThemeTests {
         let symbols = Theme.allPhyla.map(\.symbol)
         #expect(Set(symbols).count == symbols.count)
     }
+
+    /// Flattens a translucent colour over an opaque backdrop, the way UIKit
+    /// composites it on screen — `contrast(_:_:)` reads raw RGB and ignores
+    /// alpha, so a chip's true on-screen colour has to be pre-blended before
+    /// it is measured.
+    private func blend(_ foreground: Color, alpha: Double, over background: Color) -> Color {
+        func components(_ color: Color) -> (r: CGFloat, g: CGFloat, b: CGFloat) {
+            let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            guard resolved.getRed(&r, green: &g, blue: &b, alpha: &a) else {
+                Issue.record("could not read RGB components of \(color)")
+                return (0, 0, 0)
+            }
+            return (r, g, b)
+        }
+        let f = components(foreground)
+        let b = components(background)
+        return Color(
+            red: Double(f.r * alpha + b.r * (1 - alpha)),
+            green: Double(f.g * alpha + b.g * (1 - alpha)),
+            blue: Double(f.b * alpha + b.b * (1 - alpha))
+        )
+    }
+
+    /// Guards owner ruling #1 (Task 5): every chip on the species screen draws
+    /// `Theme.ink` as text, never the phylum or signal colour itself — the plan's
+    /// original pairing (colour-as-text) measured as low as 2.78:1 in light mode.
+    @Test("le texte des badges tient AA sur chaque teinte d'embranchement et sur le fond du chip signal")
+    func badgeTextIsLegible() {
+        for phylum in Theme.allPhyla {
+            let ratio = contrast(Theme.ink, phylum.tint)
+            #expect(ratio >= 4.5, "phylum \(phylum.id) tint: \(ratio)")
+        }
+        let signalChipBackground = blend(Theme.signal, alpha: 0.14, over: Theme.paper)
+        let ratio = contrast(Theme.ink, signalChipBackground)
+        #expect(ratio >= 4.5, "signal chip: \(ratio)")
+    }
 }

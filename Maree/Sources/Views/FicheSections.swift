@@ -9,8 +9,8 @@ struct FicheSections: View {
         VStack(alignment: .leading, spacing: 20) {
             ForEach(detail.sections, id: \.kind) { section in
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(section.kind.title).font(.headline)
-                    Text(section.text).font(.body)
+                    sectionTitle(section.kind.title)
+                    Text(section.text).font(.body).foregroundStyle(Theme.ink)
                     // Both derived blocks are guarded: depth and temperature are
                     // regex-extracted and absent for over half the species, and an
                     // empty HStack would still take the stack's spacing.
@@ -23,37 +23,45 @@ struct FicheSections: View {
             // geography would never render.
             if !detail.zones.isEmpty, detail.section(.distribution) == nil {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(SectionKind.distribution.title).font(.headline)
+                    sectionTitle(SectionKind.distribution.title)
                     zoneChips
                 }
             }
 
             if !detail.frenchNames.isEmpty || !detail.otherNames.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Autres noms").font(.headline)
+                    sectionTitle("Autres noms")
                     if !detail.frenchNames.isEmpty {
-                        Text(detail.frenchNames.joined(separator: " · "))
+                        Text(detail.frenchNames.joined(separator: " · ")).foregroundStyle(Theme.ink)
                     }
                     if !detail.otherNames.isEmpty {
-                        Text(detail.otherNames.joined(separator: " · ")).foregroundStyle(.secondary)
+                        Text(detail.otherNames.joined(separator: " · ")).foregroundStyle(Theme.inkSoft)
                     }
                 }
             }
 
             if !detail.ranks.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Classification").font(.headline)
+                    sectionTitle("Classification")
                     ForEach(detail.ranks, id: \.position) { rank in
                         HStack(alignment: .firstTextBaseline) {
-                            Text(rank.rank).font(.caption).foregroundStyle(.secondary)
+                            Text(rank.rank).font(.caption).foregroundStyle(Theme.inkSoft)
                                 .frame(width: 110, alignment: .leading)
-                            Text(rank.name)
+                            Text(rank.name).foregroundStyle(Theme.ink)
                         }
                     }
                 }
             }
         }
         .padding(.horizontal)
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(.caption.weight(.semibold))
+            .textCase(.uppercase)
+            .tracking(0.8)
+            .foregroundStyle(Theme.inkSoft)
     }
 
     private var hasMeasurements: Bool {
@@ -75,7 +83,7 @@ struct FicheSections: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(detail.zones) { zone in
-                    Badge(text: zone.name, tint: .blue)
+                    Badge(text: zone.name, background: Theme.signal.opacity(0.14))
                 }
             }
         }
@@ -89,10 +97,10 @@ private struct Measurement: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Label(label, systemImage: icon).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.body.weight(.medium))
+            Label(label, systemImage: icon).font(.caption).foregroundStyle(Theme.inkSoft)
+            Text(value).font(.body.weight(.medium)).foregroundStyle(Theme.ink)
         }
         .padding(10)
-        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 10))
+        .background(Theme.surface, in: .rect(cornerRadius: 10))
     }
 }

@@ -20,6 +20,7 @@ struct FicheView: View {
                 ProgressView().padding(.top, 80)
             }
         }
+        .background(Theme.paper)
         .navigationTitle(detail?.species.displayName ?? "")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -47,34 +48,48 @@ struct FicheView: View {
     }
 
     private func header(_ detail: SpeciesDetail) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
             if detail.species.photoCount > 0 {
                 RemoteImage(.photo(speciesId: detail.species.id, position: 0))
-                    .frame(height: 240)
+                    .frame(height: 260)
                     .frame(maxWidth: .infinity)
                     .clipped()
             }
+            Rectangle()
+                .fill(Theme.phylum(detail.species.phylumId).base)
+                .frame(height: 3)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(detail.species.displayName).font(.title2.bold())
-                Text(detail.species.scientificName).font(.headline).italic().foregroundStyle(.secondary)
-
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    PhylumBadge(phylumId: detail.species.phylumId, size: 34)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(detail.species.displayName)
+                            .font(.title2.bold())
+                            .foregroundStyle(Theme.ink)
+                        Text(detail.species.scientificName)
+                            .font(.headline).italic()
+                            .foregroundStyle(Theme.inkSoft)
+                    }
+                }
+                // Kept around `badges(_:)` so the row scrolls instead of overflowing
+                // at large Dynamic Type sizes (checked at AX3 by Task 7).
                 ViewThatFits(in: .horizontal) {
                     badges(detail)
                     ScrollView(.horizontal, showsIndicators: false) { badges(detail) }
                 }
             }
             .padding(.horizontal)
+            .padding(.top, 14)
         }
     }
 
     private func badges(_ detail: SpeciesDetail) -> some View {
         HStack(spacing: 8) {
-            Badge(text: detail.group.name, tint: .teal)
+            Badge(text: detail.group.name, background: Theme.phylum(detail.species.phylumId).tint)
             // No status badge: « Publiée » on nearly every fiche is noise, and the
             // two that follow are the ones that matter under water.
-            if detail.species.regulated { Badge(text: "Réglementée", tint: .indigo) }
-            if detail.species.dangerous { Badge(text: "Dangereuse", tint: .orange) }
+            if detail.species.regulated { Badge(text: "Réglementée", background: Theme.signal.opacity(0.14)) }
+            if detail.species.dangerous { Badge(text: "Dangereuse", background: Theme.signal.opacity(0.14)) }
         }
     }
 
@@ -102,7 +117,7 @@ struct FicheView: View {
 
     private func attribution(_ detail: SpeciesDetail) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Divider()
+            Divider().overlay(Theme.rule)
             Text("Fiche et photos : DORIS / FFESSM. Tous droits réservés.")
             if let url = sourceURL(detail) {
                 Link("Voir la fiche sur doris.ffessm.fr", destination: url)
@@ -112,21 +127,24 @@ struct FicheView: View {
             }
         }
         .font(.footnote)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Theme.inkSoft)
         .padding(.horizontal)
     }
 }
 
+/// One small chip, one rule for all of them: `Theme.ink` text over a caller-chosen
+/// background — see Task 5 owner ruling #1, the phylum/signal colours themselves
+/// fail AA as text in light mode, so only the background carries them.
 struct Badge: View {
     let text: String
-    let tint: Color
+    let background: Color
 
     var body: some View {
         Text(text)
             .font(.caption.weight(.medium))
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(tint.opacity(0.15), in: .capsule)
-            .foregroundStyle(tint)
+            .background(background, in: .capsule)
+            .foregroundStyle(Theme.ink)
     }
 }
