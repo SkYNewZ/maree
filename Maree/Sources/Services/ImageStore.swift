@@ -128,10 +128,15 @@ final class ImageStore {
 
     /// Only a 200 body is ever returned, so a 404 page is never written to the cache
     /// as if it were a photo. `.atomic` writes then rule out a truncated file.
+    ///
+    /// A 404 is told apart from every other failure because it is permanent: bulk
+    /// prefetching records it and stops asking, while a 5xx or a dead network must
+    /// stay retryable.
     private static func fetch(_ kind: ImageKind) async throws -> Data {
         let (data, response) = try await URLSession.shared.data(from: kind.remoteURL)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw ImageError.notAvailable
+        guard let http = response as? HTTPURLResponse else { throw ImageError.notAvailable }
+        guard http.statusCode == 200 else {
+            throw http.statusCode == 404 ? ImageError.notFound : ImageError.notAvailable
         }
         return data
     }
@@ -139,12 +144,11 @@ final class ImageStore {
 
 enum ImageError: LocalizedError {
     case notAvailable
+    /// HTTP 404: the bucket holds no such object and never will. 15 species carry
+    /// a photoCount with no image behind it.
+    case notFound
 
-    var errorDescription: String? {
-        switch self {
-        case .notAvailable: "Cette photo n'est pas disponible."
-        }
-    }
+    var errorDescription: String? { "Cette photo n'est pas disponible." }
 }
 
 extension EnvironmentValues {

@@ -1,4 +1,108 @@
 import SwiftUI
 
-// Placeholder, replaced in a later task.
-struct SettingsView: View { var body: some View { Text("Réglages") } }
+struct SettingsView: View {
+    @Environment(\.repository) private var repository
+    @Environment(\.favorites) private var favorites
+    @Environment(\.imageStore) private var imageStore
+    @Environment(\.thumbnailPack) private var pack
+
+    /// Owned by the screen: a trip is prepared here and nowhere else. The defaults
+    /// resolve to the very instances the environment hands out.
+    @State private var trip = TripPreparation()
+    @State private var scope: TripScope?
+    @State private var estimate: (photos: Int, bytes: Int64)?
+    @State private var groups: [TaxonGroup] = []
+    @State private var zones: [Zone] = []
+    @State private var dorisDate = "—"
+    @State private var speciesCount = "—"
+    @State private var cacheSize: Int64 = 0
+
+    var body: some View {
+        NavigationStack {
+            List {
+                // `Section` on its own resolves to our database record, which shadows
+                // SwiftUI's type module-wide.
+                SwiftUI.Section("Hors ligne") {
+                    LabeledContent("Vignettes") { packStatus }
+                    if pack.state.isRunning, let fraction = pack.state.fraction {
+                        ProgressView(value: fraction)
+                    }
+                    LabeledContent("Images en cache", value: formatted(cacheSize))
+                }
+
+                SwiftUI.Section("Préparer une sortie") {
+                    Picker("Contenu", selection: $scope) {
+                        Text("Choisir…").tag(TripScope?.none)
+                        Text("Mes favoris (\(favorites.ids.count))").tag(TripScope?.some(.favorites))
+                        ForEach(groups) { group in
+                            Text(group.name).tag(TripScope?.some(.group(group)))
+                        }
+                        ForEach(zones) { zone in
+                            Text(zone.name).tag(TripScope?.some(.zone(zone)))
+                        }
+                    }
+                    if let estimate {
+                        LabeledContent("À télécharger",
+                                       value: "\(estimate.photos) photos · environ \(formatted(estimate.bytes))")
+                    }
+                    if trip.state.isRunning {
+                        if let fraction = trip.state.fraction { ProgressView(value: fraction) }
+                        Button("Annuler", role: .destructive) { trip.cancel() }
+                    } else {
+                        Button("Télécharger") { startTrip() }
+                            .disabled(scope == nil || (estimate?.photos ?? 0) == 0)
+                    }
+                }
+
+                SwiftUI.Section("À propos") {
+                    LabeledContent("Base DORIS", value: dorisDate)
+                    LabeledContent("Espèces", value: speciesCount)
+                    Text("Fiches et photos : DORIS / FFESSM. Application personnelle, non affiliée.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Réglages")
+        }
+        .task {
+            groups = (try? repository.rootGroups()) ?? []
+            zones = (try? repository.zones()) ?? []
+            dorisDate = (try? repository.meta("dorisDate")) ?? "—"
+            speciesCount = (try? repository.meta("speciesCount")).flatMap(Int.init)?.formatted() ?? "—"
+        }
+        // The pack keeps downloading while this screen is open, so the cache size is
+        // read again when the run starts and when it stops.
+        .task(id: pack.state.isRunning) {
+            cacheSize = await imageStore.cacheSizeInBytes()
+        }
+        .task(id: scope) {
+            guard let scope else { estimate = nil; return }
+            estimate = try? trip.estimate(for: scope)
+        }
+    }
+
+    @ViewBuilder
+    private var packStatus: some View {
+        switch pack.state {
+        case .running(let done, let total): Text("\(done) / \(total)")
+        // Failures here are network ones, retried on the next launch. Thumbnails the
+        // bucket simply does not have are recorded, not reported as a problem.
+        case .finished(let failed) where failed > 0: Text("\(failed) à reprendre")
+        case .finished: Text("complètes")
+        case .idle, .cancelled: Text("en attente")
+        }
+    }
+
+    private func startTrip() {
+        guard let scope else { return }
+        Task {
+            await trip.start(scope)
+            cacheSize = await imageStore.cacheSizeInBytes()
+            estimate = try? trip.estimate(for: scope)
+        }
+    }
+
+    private func formatted(_ bytes: Int64) -> String {
+        ByteCountFormatStyle(style: .file).format(bytes)
+    }
+}

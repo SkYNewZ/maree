@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct RootView: View {
+    @Environment(\.thumbnailPack) private var pack
+
     var body: some View {
         TabView {
             Tab("Rechercher", systemImage: "magnifyingglass") { SearchView() }
@@ -8,6 +10,11 @@ struct RootView: View {
             Tab("Favoris", systemImage: "heart") { FavoritesView() }
             Tab("Réglages", systemImage: "gearshape") { SettingsView() }
         }
+        // Fills the thumbnail cache in the background. Cancelling this task (the
+        // view going away) does not stop the run: the pack owns an unstructured
+        // task, and the download must outlive any one screen. `.utility` so the
+        // 2 800 file run is preempted by whatever the user is doing right now.
+        .task(priority: .utility) { await pack.startIfNeeded() }
     }
 }
 

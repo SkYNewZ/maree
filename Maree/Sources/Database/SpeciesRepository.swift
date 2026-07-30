@@ -138,6 +138,14 @@ struct SpeciesRepository {
         }
     }
 
+    /// Ids of every species that has a thumbnail to download. Today all 2 837 rows
+    /// carry photos, but a species without any has no `0_maree.heic` in the bucket.
+    func allSpeciesIds() throws -> [Int] {
+        try reader.read { db in
+            try Int.fetchAll(db, sql: "SELECT id FROM species WHERE photoCount > 0 ORDER BY id")
+        }
+    }
+
     func meta(_ key: String) throws -> String? {
         try reader.read { db in
             try String.fetchOne(db, sql: "SELECT value FROM meta WHERE key = ?", arguments: [key])

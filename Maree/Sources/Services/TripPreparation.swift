@@ -1,0 +1,61 @@
+import Foundation
+import Observation
+
+enum TripScope: Hashable {
+    /// Carries no ids: they are read when the estimate or the download runs. With
+    /// the ids inside the case, favouriting a species while the settings screen is
+    /// open would change the picker's tag and silently clear its own selection.
+    case favorites
+    case group(TaxonGroup)
+    case zone(Zone)
+}
+
+/// Prefetches every full-size photo of a chosen scope, so a dive site with no
+/// signal still shows the photos that matter.
+@Observable
+@MainActor
+final class TripPreparation {
+    /// Measured average of a full-size photo in the bucket (51 KB over 39 samples).
+    /// Only ever shown as an estimate — photo weights range over an order of magnitude.
+    private static let averagePhotoBytes: Int64 = 52_000
+
+    private let store: ImageStore
+    private let repository: SpeciesRepository
+    private let favorites: Favorites
+    private let downloads: BulkDownload
+
+    var state: DownloadState { downloads.state }
+
+    init(store: ImageStore = .shared,
+         repository: SpeciesRepository = SpeciesRepository(reader: AppDatabase.shared.reader),
+         favorites: Favorites = .shared) {
+        self.store = store
+        self.repository = repository
+        self.favorites = favorites
+        downloads = BulkDownload(store: store, registryName: "unavailable-photos.json")
+    }
+
+    func estimate(for scope: TripScope) throws -> (photos: Int, bytes: Int64) {
+        let missing = try missingPhotos(in: scope)
+        return (missing.count, Int64(missing.count) * Self.averagePhotoBytes)
+    }
+
+    func start(_ scope: TripScope) async {
+        await downloads.run((try? missingPhotos(in: scope)) ?? [], poolSize: 4, progressEvery: 10)
+    }
+
+    func cancel() { downloads.cancel() }
+
+    private func missingPhotos(in scope: TripScope) throws -> [ImageKind] {
+        let species = switch scope {
+        case .favorites: try repository.species(ids: favorites.ids)
+        case .group(let group): try repository.species(inGroup: group.id)
+        case .zone(let zone): try repository.species(inZone: zone.id)
+        }
+        return species
+            .flatMap { species in
+                (0..<species.photoCount).map { ImageKind.photo(speciesId: species.id, position: $0) }
+            }
+            .filter { !downloads.isKnownUnavailable($0) && !store.cachedFileExists(for: $0) }
+    }
+}
