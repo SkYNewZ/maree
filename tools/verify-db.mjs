@@ -48,6 +48,9 @@ export function verifyDatabase(path) {
     'photo.speciesId': count('SELECT COUNT(*) AS c FROM photo WHERE speciesId NOT IN (SELECT id FROM species)'),
     'species.groupId': count('SELECT COUNT(*) AS c FROM species WHERE groupId NOT IN (SELECT id FROM taxonGroup)'),
     'speciesZone.zoneId': count('SELECT COUNT(*) AS c FROM speciesZone WHERE zoneId NOT IN (SELECT id FROM zone)'),
+    // Self-references: the pruning steps of prepare-db.mjs can cut a parent loose.
+    'taxonGroup.parentId': count('SELECT COUNT(*) AS c FROM taxonGroup WHERE parentId IS NOT NULL AND parentId NOT IN (SELECT id FROM taxonGroup)'),
+    'zone.parentId': count('SELECT COUNT(*) AS c FROM zone WHERE parentId IS NOT NULL AND parentId NOT IN (SELECT id FROM zone)'),
   }
   for (const [label, n] of Object.entries(orphans)) {
     if (n > 0) problems.push(`${label}: ${n} orphan rows`)

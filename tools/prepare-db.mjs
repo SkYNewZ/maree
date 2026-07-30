@@ -10,6 +10,7 @@ import { dirname, resolve } from 'node:path'
 import { verifyDatabase } from './verify-db.mjs'
 import { clean, parseRange } from './lib/text.mjs'
 import { SECTION_KEYS } from './lib/sections.mjs'
+import { PHOTO_HAS_IMAGE } from './lib/photos.mjs'
 
 const args = new Map(
   process.argv.slice(2)
@@ -99,7 +100,9 @@ for (const g of groups) {
 
 // ── Per-fiche content ────────────────────────────────────────────────────────
 const sectionsOf = db.prepare('SELECT titre, texte FROM src.sectionFiche WHERE fiche_id = ? ORDER BY numOrdre')
-const photosOf = db.prepare('SELECT titre, description FROM src.photoFiche WHERE fiche_id = ? ORDER BY _id')
+const photosOf = db.prepare(
+  `SELECT titre, description FROM src.photoFiche WHERE fiche_id = ? AND ${PHOTO_HAS_IMAGE} ORDER BY _id`
+)
 const namesOf = db.prepare('SELECT denomination, langue FROM src.autreDenomination WHERE fiche_id = ?')
 const ranksOf = db.prepare(`
   SELECT c.niveau, c.termeScientifique, c.termeFrancais, cf.numOrdre
@@ -196,7 +199,17 @@ db.exec(`
   )
 `)
 db.exec('DELETE FROM taxonGroup WHERE speciesCount = 0')
-db.exec('DELETE FROM zone WHERE id NOT IN (SELECT zoneId FROM speciesZone)')
+// Ancestors of a surviving zone are kept even when no species points at them
+// directly, otherwise the navigation tree loses its intermediate nodes.
+// (taxonGroup needs no such care: a recursive count is non-zero for every ancestor.)
+db.exec(`
+  WITH RECURSIVE kept(id) AS (
+    SELECT DISTINCT zoneId FROM speciesZone
+    UNION
+    SELECT z.parentId FROM zone z JOIN kept ON z.id = kept.id WHERE z.parentId IS NOT NULL
+  )
+  DELETE FROM zone WHERE id NOT IN (SELECT id FROM kept)
+`)
 
 const dorisDate = db.prepare('SELECT dateBase FROM src.dorisDB_metadata LIMIT 1').get()?.dateBase ?? 'unknown'
 const insertMeta = db.prepare('INSERT INTO meta (key, value) VALUES (?, ?)')
