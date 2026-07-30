@@ -24,6 +24,7 @@ struct GroupView: View {
                         NavigationLink(value: Route.group(child)) {
                             GroupLabel(group: child)
                         }
+                        .listRowBackground(Theme.surface)
                     }
                     // `Section` is shadowed by our database record type of the
                     // same name, so SwiftUI's own Section must be qualified here.
@@ -31,8 +32,11 @@ struct GroupView: View {
                         NavigationLink(value: Route.groupSpecies(group)) {
                             Label("Voir les \(group.speciesCount) espèces", systemImage: "list.bullet")
                         }
+                        .listRowBackground(Theme.surface)
                     }
                 }
+                .scrollContentBackground(.hidden)
+                .background(Theme.paper)
             }
         }
         // Set once at the top level (rather than per-branch) so the

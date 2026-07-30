@@ -15,6 +15,7 @@ struct ExploreView: View {
                         NavigationLink(value: Route.group(group)) {
                             GroupLabel(group: group)
                         }
+                        .listRowBackground(Theme.surface)
                     }
                 }
                 SwiftUI.Section("Par zone") {
@@ -22,9 +23,12 @@ struct ExploreView: View {
                         NavigationLink(value: Route.zone(zone)) {
                             Text(zone.name)
                         }
+                        .listRowBackground(Theme.surface)
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.paper)
             .navigationTitle("Explorer")
             .mareeDestinations()
         }
@@ -39,16 +43,19 @@ struct GroupLabel: View {
     let group: TaxonGroup
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(group.name)
-            HStack(spacing: 6) {
-                if let hint = group.scientificHint {
-                    Text(hint).italic()
+        HStack(spacing: 12) {
+            PhylumBadge(phylumId: group.phylumId)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(group.name).foregroundStyle(Theme.ink)
+                HStack(spacing: 6) {
+                    if let hint = group.scientificHint {
+                        Text(hint).italic()
+                    }
+                    Text("\(group.speciesCount) espèces")
                 }
-                Text("\(group.speciesCount) espèces")
+                .font(.caption)
+                .foregroundStyle(Theme.inkSoft)
             }
-            .font(.caption)
-            .foregroundStyle(.secondary)
         }
     }
 }
