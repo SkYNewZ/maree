@@ -41,17 +41,6 @@ struct DatabaseContractTests {
         #expect(declared.subtracting(kinds).isEmpty, "clés Swift absentes de la base : \(declared.subtracting(kinds))")
     }
 
-    @Test("l'ordre d'affichage reproduit SECTION_ORDER")
-    func sectionOrderMatchesPipeline() {
-        // Verbatim copy of SECTION_ORDER in tools/lib/sections.mjs. Keep both in sync.
-        #expect(SectionKind.allCases.map(\.rawValue) == [
-            "identification", "distribution", "biotope", "description",
-            "feeding", "reproduction", "biologyMisc", "associatedLife",
-            "additionalInfo", "regulation",
-            "frenchNameOrigin", "scientificNameOrigin", "invalidSynonyms", "similarSpecies",
-        ])
-    }
-
     @Test("l'instance partagée ouvre la base embarquée")
     func sharedDatabaseOpens() throws {
         let count = try AppDatabase.shared.reader.read { db in

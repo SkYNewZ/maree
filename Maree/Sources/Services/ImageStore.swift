@@ -1,5 +1,4 @@
 import Foundation
-import Observation
 import SwiftUI
 import UIKit
 
@@ -31,7 +30,6 @@ enum ImageKind: Hashable {
 /// Persistent image cache. Files live in Application Support, never in Caches:
 /// iOS may evict Caches under storage pressure, which is exactly the failure
 /// mode this app exists to avoid.
-@Observable
 @MainActor
 final class ImageStore {
     /// The instance the environment hands out. `@Entry` defaults are computed, so

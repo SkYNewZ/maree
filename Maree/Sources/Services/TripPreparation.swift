@@ -1,5 +1,4 @@
 import Foundation
-import Observation
 import SwiftUI
 
 enum TripScope: Hashable {
@@ -13,7 +12,9 @@ enum TripScope: Hashable {
 
 /// Prefetches every full-size photo of a chosen scope, so a dive site with no
 /// signal still shows the photos that matter.
-@Observable
+///
+/// Not `@Observable`: every stored property is a `let`, and views follow the run
+/// through `BulkDownload.state`, which is.
 @MainActor
 final class TripPreparation {
     /// The instance the environment hands out. `@Entry` defaults are computed, so

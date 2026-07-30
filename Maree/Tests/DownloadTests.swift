@@ -20,9 +20,9 @@ struct DownloadTests {
         #expect(DownloadState.running(done: 0, total: 100).fraction == 0)
         #expect(DownloadState.running(done: 50, total: 100).fraction == 0.5)
         #expect(DownloadState.running(done: 100, total: 100).fraction == 1)
-        // A zero total must not divide by zero.
-        #expect(DownloadState.running(done: 0, total: 0).fraction == 1)
-        #expect(DownloadState.finished(failed: 0).fraction == 1)
+        // Read only while `isRunning`, so every other state has no fraction at all.
+        #expect(DownloadState.finished(failed: 0).fraction == nil)
+        #expect(DownloadState.cancelled.fraction == nil)
     }
 
     @Test("le pack ne recompte pas les vignettes déjà en cache")

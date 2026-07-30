@@ -88,11 +88,10 @@ const groups = db.prepare(`
   SELECT _id, groupePere_id, nomGroupe, descriptionGroupe FROM src.groupe WHERE _id != 1
 `).all()
 
-// The scientific hint is the first *italic* or (parenthetical) fragment of the
-// group description, e.g. "Algues rouges" → "Rhodophycées".
+// The scientific hint is the first parenthetical fragment of the group
+// description, e.g. "Algues rouges (Rhodophycées)" → "Rhodophycées".
 function scientificHint(description) {
-  const text = clean(description)
-  const match = text.match(/\*([^*]+)\*/) ?? text.match(/\(([^)]+)\)/)
+  const match = clean(description).match(/\(([^)]+)\)/)
   return match ? match[1].trim() : null
 }
 

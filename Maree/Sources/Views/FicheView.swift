@@ -71,7 +71,8 @@ struct FicheView: View {
     private func badges(_ detail: SpeciesDetail) -> some View {
         HStack(spacing: 8) {
             Badge(text: detail.group.name, tint: .teal)
-            Badge(text: detail.species.status.label, tint: .gray)
+            // No status badge: « Publiée » on nearly every fiche is noise, and the
+            // two that follow are the ones that matter under water.
             if detail.species.regulated { Badge(text: "Réglementée", tint: .indigo) }
             if detail.species.dangerous { Badge(text: "Dangereuse", tint: .orange) }
         }

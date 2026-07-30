@@ -17,21 +17,3 @@ export const SECTION_KEYS = {
   'Autres noms scientifiques parfois utilisés, mais non valides': 'invalidSynonyms',
   'Espèces Ressemblantes': 'similarSpecies',
 }
-
-// Display order on the species screen. Mirrored by SectionKind.displayOrder in Swift.
-export const SECTION_ORDER = [
-  'identification',
-  'distribution',
-  'biotope',
-  'description',
-  'feeding',
-  'reproduction',
-  'biologyMisc',
-  'associatedLife',
-  'additionalInfo',
-  'regulation',
-  'frenchNameOrigin',
-  'scientificNameOrigin',
-  'invalidSynonyms',
-  'similarSpecies',
-]

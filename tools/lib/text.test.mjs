@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { clean, parseRange } from './text.mjs'
-import { SECTION_KEYS, SECTION_ORDER } from './sections.mjs'
+import { SECTION_KEYS } from './sections.mjs'
 
 test('retire le markup italique/gras/glossaire', () => {
   assert.equal(clean('{{i}}Paracentrotus lividus{{/i}} (Lamarck, 1816)'), 'Paracentrotus lividus (Lamarck, 1816)')
@@ -50,13 +50,10 @@ test('accepte les bornes negatives sans casser le separateur tiret', () => {
   assert.deepEqual(parseRange('12-18 m', 'm'), { min: 12, max: 18 })
 })
 
-test('les cles de sections sont completes et ordonnees', () => {
+test('les cles de sections sont completes et distinctes', () => {
   assert.equal(Object.keys(SECTION_KEYS).length, 14)
   assert.equal(SECTION_KEYS['Critères de reconnaissance'], 'identification')
   assert.equal(SECTION_KEYS['Reproduction - Multiplication'], 'reproduction')
-  // toute cle presente dans la table doit avoir une place dans l'ordre d'affichage
-  for (const key of Object.values(SECTION_KEYS)) {
-    assert.ok(SECTION_ORDER.includes(key), `cle absente de SECTION_ORDER: ${key}`)
-  }
-  assert.equal(SECTION_ORDER[0], 'identification')
+  // une cle par titre : deux titres partageant une cle fusionneraient deux rubriques
+  assert.equal(new Set(Object.values(SECTION_KEYS)).size, 14)
 })

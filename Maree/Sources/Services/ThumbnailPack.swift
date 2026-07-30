@@ -8,12 +8,10 @@ enum DownloadState: Equatable {
     case finished(failed: Int)
     case cancelled
 
+    /// Only a run in flight has a fraction, and `run()` never publishes a zero
+    /// total — it returns early on empty input — so the division is safe.
     var fraction: Double? {
-        switch self {
-        case .idle, .cancelled: nil
-        case .running(let done, let total): total == 0 ? 1 : Double(done) / Double(total)
-        case .finished: 1
-        }
+        if case .running(let done, let total) = self { Double(done) / Double(total) } else { nil }
     }
 
     var isRunning: Bool { if case .running = self { true } else { false } }
@@ -156,7 +154,9 @@ final class BulkDownload {
 /// Downloads one thumbnail per species so every list works offline. Runs on first
 /// launch and resumes on later ones: the cache directory *is* the progress state,
 /// so an interrupted run simply picks up the files still missing.
-@Observable
+///
+/// Not `@Observable`: every stored property is a `let`, and views follow the run
+/// through `BulkDownload.state`, which is.
 @MainActor
 final class ThumbnailPack {
     /// The instance the environment hands out. `@Entry` defaults are computed, so

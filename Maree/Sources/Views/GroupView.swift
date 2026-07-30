@@ -7,7 +7,6 @@ struct GroupView: View {
     @Environment(\.repository) private var repository
     @Environment(\.tripPreparation) private var trip
     @State private var children: [TaxonGroup] = []
-    @State private var species: [Species] = []
     @State private var loaded = false
     @State private var estimate: (photos: Int, bytes: Int64)?
     @State private var confirming = false
@@ -17,11 +16,8 @@ struct GroupView: View {
             if !loaded {
                 ProgressView()
             } else if children.isEmpty {
-                SpeciesListView(
-                    title: group.name,
-                    species: species,
-                    emptyMessage: "Ce groupe ne contient aucune espèce européenne."
-                )
+                // A leaf *is* the species list, and that screen already exists.
+                GroupSpeciesView(group: group)
             } else {
                 List {
                     ForEach(children) { child in
@@ -74,14 +70,13 @@ struct GroupView: View {
         }
         .task {
             children = (try? repository.childGroups(of: group.id)) ?? []
-            if children.isEmpty {
-                species = (try? repository.species(inGroup: group.id)) ?? []
-            }
             loaded = true
         }
     }
 }
 
+/// Every species of a group, its sub-groups included. Reached both as a leaf of
+/// the tree and from « Voir les N espèces » on a branch.
 struct GroupSpeciesView: View {
     let group: TaxonGroup
 
