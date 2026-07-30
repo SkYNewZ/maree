@@ -18,7 +18,14 @@ struct ThemeTests {
         func luminance(_ color: Color) -> Double {
             let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
             var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, alpha: CGFloat = 0
-            resolved.getRed(&r, green: &g, blue: &b, alpha: &alpha)
+            // getRed(...) returns false for a non-RGB colour space, leaving r/g/b at
+            // 0 — silently measuring black. Every colour in this file is declared
+            // srgb, so this never fires today, but a guard that could pass wrongly
+            // is not a guard: fail loudly instead of computing a bogus ratio.
+            guard resolved.getRed(&r, green: &g, blue: &b, alpha: &alpha) else {
+                Issue.record("could not read RGB components of \(color)")
+                return 0
+            }
             func channel(_ v: CGFloat) -> Double {
                 let v = Double(v)
                 return v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
