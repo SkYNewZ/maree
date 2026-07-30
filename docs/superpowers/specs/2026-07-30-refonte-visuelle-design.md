@@ -125,6 +125,7 @@ Ils empêchent une refonte de dégrader une app qui marche :
 
 - Toute modification de la navigation, de l'ordre des sections ou de la couche données.
 - Icônes par espèce (2 837 dessins) ou par groupe au-delà du niveau 2 (héritage).
+- Icônes dessinées sur mesure : écartées en v1 (voir §5).
 - Transitions et animations personnalisées.
 - Réutilisation des illustrations `cleURLImage` de DORIS : leur chemin renvoie un 404,
   elles ne sont pas accessibles.
