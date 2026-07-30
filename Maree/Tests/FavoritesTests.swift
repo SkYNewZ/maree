@@ -6,19 +6,6 @@ import SwiftUI
 @Suite("Favoris")
 @MainActor
 struct FavoritesTests {
-    /// `defaults.description` is the object's debug description (e.g.
-    /// `<UserDefaults: 0x...>`), never the suite name — passing it to
-    /// `removePersistentDomain(forName:)` clears nothing. Each test still gets
-    /// its own UUID-named suite, so tests don't leak into each other even with
-    /// that bug, but the domain then lingers on disk forever. Naming the suite
-    /// once and reusing it here actually clears it.
-    private func makeDefaults() -> UserDefaults {
-        let suiteName = "test-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
-        return defaults
-    }
-
     @Test("un favori ajouté est retenu, un second appel le retire")
     func toggling() {
         let favorites = Favorites(defaults: makeDefaults())

@@ -5,22 +5,11 @@ import GRDB
 /// module-local type of that name would win unqualified lookup everywhere, so a
 /// `catch let error as DatabaseError` meant for a SQLite failure would compile and
 /// never match.
-enum AppDatabaseError: LocalizedError {
+///
+/// A plain `Error`: it is thrown once and caught once, both in this file, and the
+/// one catch writes the sentence itself rather than reassembling halves.
+enum AppDatabaseError: Error {
     case bundledDatabaseMissing
-
-    var errorDescription: String? {
-        switch self {
-        case .bundledDatabaseMissing:
-            "La base de données de l'application est introuvable."
-        }
-    }
-
-    var failureReason: String? {
-        switch self {
-        case .bundledDatabaseMissing:
-            "Le fichier maree.db n'a pas été inclus dans l'application. Exécutez « node tools/prepare-db.mjs » puis recompilez."
-        }
-    }
 }
 
 /// Read-only access to the bundled species database. The file ships inside the
@@ -49,11 +38,13 @@ struct AppDatabase {
         do {
             return try AppDatabase()
         } catch {
-            // `localizedDescription` is only the `errorDescription` half; the half
-            // that says what to do about it — « Exécutez node tools/prepare-db.mjs »
-            // — would be dropped exactly when it is needed.
-            let reason = (error as? LocalizedError)?.failureReason
-            fatalError([error.localizedDescription, reason].compactMap(\.self).joined(separator: " "))
+            // Says what to do about it, not only what failed: this fires on a build
+            // where the database was never generated, and the underlying error alone
+            // would send a maintainer looking in the wrong place.
+            fatalError("""
+                Base de données introuvable ou illisible (\(error)). \
+                Exécutez « node tools/prepare-db.mjs » puis recompilez.
+                """)
         }
     }
 }

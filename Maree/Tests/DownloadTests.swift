@@ -160,11 +160,4 @@ struct DownloadTests {
         // the same run — and one writer on the unavailable-photos registry.
         #expect(EnvironmentValues().tripPreparation === TripPreparation.shared)
     }
-
-    private func makeDefaults() -> UserDefaults {
-        let suiteName = "test-\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
-        return defaults
-    }
 }
