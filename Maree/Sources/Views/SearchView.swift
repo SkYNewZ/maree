@@ -23,10 +23,6 @@ struct SearchView: View {
             .mareeDestinations()
         }
         .task(id: query) {
-            // The database is local, so a debounce is only there to avoid
-            // re-querying on every keystroke of a fast typist.
-            try? await Task.sleep(for: .milliseconds(120))
-            guard !Task.isCancelled else { return }
             results = (try? repository.search(query)) ?? []
         }
     }
