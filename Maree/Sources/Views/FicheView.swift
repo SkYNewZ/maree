@@ -85,7 +85,12 @@ struct FicheView: View {
 
     private func badges(_ detail: SpeciesDetail) -> some View {
         HStack(spacing: 8) {
-            Badge(text: detail.group.name, background: Theme.phylum(detail.species.phylumId).tint)
+            // `.base` at low alpha, not `.tint`: blending a fixed colour over the
+            // dynamic `Theme.paper` backdrop makes the composite itself dynamic — pale
+            // in light, dark in dark — so `Theme.ink` stays legible on it in both
+            // (`.tint` alone has no dark variant and dropped to ~1:1 against `Theme.ink`
+            // once that flipped to near-white in dark mode; see Task 7 fix round).
+            Badge(text: detail.group.name, background: Theme.phylum(detail.species.phylumId).base.opacity(0.15))
             // No status badge: « Publiée » on nearly every fiche is noise, and the
             // two that follow are the ones that matter under water.
             if detail.species.regulated { Badge(text: "Réglementée", background: Theme.signal.opacity(0.14)) }

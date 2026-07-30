@@ -5,18 +5,24 @@ import SwiftUI
 @Suite("Thème")
 @MainActor
 struct ThemeTests {
-    /// WCAG relative luminance, then the AA contrast ratio.
+    /// WCAG relative luminance, then the AA contrast ratio, resolved against a given
+    /// appearance.
     ///
     /// `Color("Paper")` etc. are dynamic (light + dark variants), so resolving them
     /// through `UIColor(color).cgColor.components` would depend on whatever trait
     /// collection happens to be current — undefined in a unit test. Resolve
-    /// explicitly against light mode instead, and read channels with
+    /// explicitly against the requested appearance instead, and read channels with
     /// `getRed(_:green:_:blue:_:alpha:)`, which always yields RGB regardless of the
     /// underlying colour space (unlike `.cgColor.components`, which can return fewer
     /// than three entries for a non-RGB space).
-    private func contrast(_ a: Color, _ b: Color) -> Double {
+    ///
+    /// Task 7 fix round: this used to hardcode `.light`, so nothing in this file could
+    /// ever fail on a dark-mode-only contrast bug — which is exactly how the group
+    /// badge (`FicheView.swift`) shipped unreadable in dark mode. Every call site below
+    /// now states its appearance explicitly.
+    private func contrast(_ a: Color, _ b: Color, appearance: UIUserInterfaceStyle) -> Double {
         func luminance(_ color: Color) -> Double {
-            let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+            let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: appearance))
             var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, alpha: CGFloat = 0
             // getRed(...) returns false for a non-RGB colour space, leaving r/g/b at
             // 0 — silently measuring black. Every colour in this file is declared
@@ -36,27 +42,47 @@ struct ThemeTests {
         return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
     }
 
-    @Test("chaque couleur de base tient AA sur le papier")
-    func basesAreLegibleOnPaper() {
-        for phylum in Theme.allPhyla {
-            let ratio = contrast(phylum.base, Theme.paper)
-            #expect(ratio >= 4.5, "phylum \(phylum.id) : \(ratio)")
+    private static let appearances: [UIUserInterfaceStyle] = [.light, .dark]
+
+    /// `base` is never drawn as text. Its only two uses are the `PhylumBadge` symbol —
+    /// painted on `tint`, not on `paper` — and the 3px decorative rule under the fiche
+    /// header, which carries no text and no WCAG contrast requirement at all. The old
+    /// assertion (`base` vs `paper` at the 4.5:1 text threshold) guarded a pairing that
+    /// does not exist on screen; in dark mode `base` has no dark variant and sits
+    /// dark-on-dark, so it would fail that check for a reason unrelated to any real
+    /// defect. The honest guard is the pairing that is actually on screen: a symbol is
+    /// a graphical object under WCAG 1.4.11, threshold 3:1, not 4.5:1. `base` and
+    /// `tint` are both fixed hex literals with no dark variant, so today this ratio is
+    /// identical in both appearances — asserted in both anyway so a future dark variant
+    /// on either side is caught here instead of on a device.
+    @Test("chaque couleur de base reste un objet graphique distinct sur sa teinte")
+    func basesAreDistinctOnTint() {
+        for style in Self.appearances {
+            for phylum in Theme.allPhyla {
+                let ratio = contrast(phylum.base, phylum.tint, appearance: style)
+                #expect(ratio >= 3.0, "phylum \(phylum.id) [\(style)]: \(ratio)")
+            }
         }
     }
 
     @Test("le texte principal tient AA sur le papier et sur la surface")
     func inkIsLegible() {
-        #expect(contrast(Theme.ink, Theme.paper) >= 4.5)
-        #expect(contrast(Theme.ink, Theme.surface) >= 4.5)
+        for style in Self.appearances {
+            #expect(contrast(Theme.ink, Theme.paper, appearance: style) >= 4.5, "\(style)")
+            #expect(contrast(Theme.ink, Theme.surface, appearance: style) >= 4.5, "\(style)")
+        }
     }
 
     /// `Theme.inkSoft` is the caption and secondary-text colour on both `Theme.paper`
     /// (list backgrounds, empty states) and `Theme.surface` (cards, chips) — nothing
-    /// guarded its contrast until now (measured 4.907:1 on paper, 5.158:1 on surface).
+    /// guarded its contrast until now (measured 4.907:1 on paper, 5.158:1 on surface,
+    /// light mode; 6.739:1 / 6.149:1 in dark).
     @Test("le texte secondaire tient AA sur le papier et sur la surface")
     func inkSoftIsLegible() {
-        #expect(contrast(Theme.inkSoft, Theme.paper) >= 4.5)
-        #expect(contrast(Theme.inkSoft, Theme.surface) >= 4.5)
+        for style in Self.appearances {
+            #expect(contrast(Theme.inkSoft, Theme.paper, appearance: style) >= 4.5, "\(style)")
+            #expect(contrast(Theme.inkSoft, Theme.surface, appearance: style) >= 4.5, "\(style)")
+        }
     }
 
     @Test("un identifiant inconnu retourne l'entrée neutre au lieu de planter")
@@ -85,9 +111,9 @@ struct ThemeTests {
     /// composites it on screen — `contrast(_:_:)` reads raw RGB and ignores
     /// alpha, so a chip's true on-screen colour has to be pre-blended before
     /// it is measured.
-    private func blend(_ foreground: Color, alpha: Double, over background: Color) -> Color {
+    private func blend(_ foreground: Color, alpha: Double, over background: Color, appearance: UIUserInterfaceStyle) -> Color {
         func components(_ color: Color) -> (r: CGFloat, g: CGFloat, b: CGFloat) {
-            let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: .light))
+            let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: appearance))
             var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
             guard resolved.getRed(&r, green: &g, blue: &b, alpha: &a) else {
                 Issue.record("could not read RGB components of \(color)")
@@ -107,14 +133,21 @@ struct ThemeTests {
     /// Guards owner ruling #1 (Task 5): every chip on the species screen draws
     /// `Theme.ink` as text, never the phylum or signal colour itself — the plan's
     /// original pairing (colour-as-text) measured as low as 2.78:1 in light mode.
+    ///
+    /// The group-name chip's background formula (`phylum.base` at 0.15 alpha over
+    /// `Theme.paper`, not the old unblended `phylum.tint`) is explained at its call
+    /// site, `FicheView.swift`'s `badges(_:)` — this is the Task 7 fix round.
     @Test("le texte des badges tient AA sur chaque teinte d'embranchement et sur le fond du chip signal")
     func badgeTextIsLegible() {
-        for phylum in Theme.allPhyla {
-            let ratio = contrast(Theme.ink, phylum.tint)
-            #expect(ratio >= 4.5, "phylum \(phylum.id) tint: \(ratio)")
+        for style in Self.appearances {
+            for phylum in Theme.allPhyla {
+                let background = blend(phylum.base, alpha: 0.15, over: Theme.paper, appearance: style)
+                let ratio = contrast(Theme.ink, background, appearance: style)
+                #expect(ratio >= 4.5, "phylum \(phylum.id) group badge [\(style)]: \(ratio)")
+            }
+            let signalChipBackground = blend(Theme.signal, alpha: 0.14, over: Theme.paper, appearance: style)
+            let ratio = contrast(Theme.ink, signalChipBackground, appearance: style)
+            #expect(ratio >= 4.5, "signal chip [\(style)]: \(ratio)")
         }
-        let signalChipBackground = blend(Theme.signal, alpha: 0.14, over: Theme.paper)
-        let ratio = contrast(Theme.ink, signalChipBackground)
-        #expect(ratio >= 4.5, "signal chip: \(ratio)")
     }
 }
