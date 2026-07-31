@@ -5,8 +5,9 @@ import SwiftUI
 @Suite("Thème")
 @MainActor
 struct ThemeTests {
-    /// WCAG relative luminance, then the AA contrast ratio, resolved against a given
-    /// appearance.
+    /// Resolves a `Color` to its RGBA channels against an explicit appearance.
+    /// Shared by `contrast(_:_:appearance:)` and `blend(_:over:appearance:)` — the
+    /// only two places in this file that need to read a `Color`'s actual channels.
     ///
     /// `Color("Paper")` etc. are dynamic (light + dark variants), so resolving them
     /// through `UIColor(color).cgColor.components` would depend on whatever trait
@@ -15,6 +16,22 @@ struct ThemeTests {
     /// `getRed(_:green:_:blue:_:alpha:)`, which always yields RGB regardless of the
     /// underlying colour space (unlike `.cgColor.components`, which can return fewer
     /// than three entries for a non-RGB space).
+    private func components(_ color: Color, appearance: UIUserInterfaceStyle) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
+        let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: appearance))
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        // getRed(...) returns false for a non-RGB colour space, leaving r/g/b at
+        // 0 — silently measuring black. Every colour in this file is declared
+        // srgb, so this never fires today, but a guard that could pass wrongly
+        // is not a guard: fail loudly instead of computing a bogus ratio.
+        guard resolved.getRed(&r, green: &g, blue: &b, alpha: &a) else {
+            Issue.record("could not read RGBA components of \(color)")
+            return (0, 0, 0, 1)
+        }
+        return (r, g, b, a)
+    }
+
+    /// WCAG relative luminance, then the AA contrast ratio, resolved against a given
+    /// appearance.
     ///
     /// Task 7 fix round: this used to hardcode `.light`, so nothing in this file could
     /// ever fail on a dark-mode-only contrast bug — which is exactly how the group
@@ -22,21 +39,12 @@ struct ThemeTests {
     /// now states its appearance explicitly.
     private func contrast(_ a: Color, _ b: Color, appearance: UIUserInterfaceStyle) -> Double {
         func luminance(_ color: Color) -> Double {
-            let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: appearance))
-            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, alpha: CGFloat = 0
-            // getRed(...) returns false for a non-RGB colour space, leaving r/g/b at
-            // 0 — silently measuring black. Every colour in this file is declared
-            // srgb, so this never fires today, but a guard that could pass wrongly
-            // is not a guard: fail loudly instead of computing a bogus ratio.
-            guard resolved.getRed(&r, green: &g, blue: &b, alpha: &alpha) else {
-                Issue.record("could not read RGB components of \(color)")
-                return 0
-            }
+            let c = components(color, appearance: appearance)
             func channel(_ v: CGFloat) -> Double {
                 let v = Double(v)
                 return v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
             }
-            return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+            return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b)
         }
         let (l1, l2) = (luminance(a), luminance(b))
         return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
@@ -126,17 +134,8 @@ struct ThemeTests {
     /// so passing `Phylum.chipBackground` or `Theme.signalChip` here blends with
     /// whatever opacity that formula actually uses — not a copy of it.
     private func blend(_ foreground: Color, over background: Color, appearance: UIUserInterfaceStyle) -> Color {
-        func components(_ color: Color) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
-            let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: appearance))
-            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-            guard resolved.getRed(&r, green: &g, blue: &b, alpha: &a) else {
-                Issue.record("could not read RGBA components of \(color)")
-                return (0, 0, 0, 1)
-            }
-            return (r, g, b, a)
-        }
-        let f = components(foreground)
-        let b = components(background)
+        let f = components(foreground, appearance: appearance)
+        let b = components(background, appearance: appearance)
         return Color(
             red: Double(f.r * f.a + b.r * (1 - f.a)),
             green: Double(f.g * f.a + b.g * (1 - f.a)),
