@@ -91,11 +91,22 @@ struct ThemeTests {
         #expect(neutral.symbol == "circle.grid.cross")
     }
 
-    @Test("la table couvre tous les phylumId de la base")
+    /// Every id `Theme.phylum(_:)` is actually asked to resolve on screen: every
+    /// species (`SpeciesRow`, the fiche header) and every non-root group
+    /// (`GroupLabel`, badged). Root groups are deliberately excluded — a root is
+    /// a kingdom, not a phylum, and draws no badge at all (`GroupLabel`), so the
+    /// four roots without a species of their own legitimately have no entry.
+    /// Widening this to all of `taxonGroup` would fail on those four roots for a
+    /// state that is correct by design.
+    @Test("la table couvre tous les phylumId affichés à l'écran")
     func tableCoversTheDatabase() throws {
         let reader = try AppDatabase().reader
         let ids = try reader.read { db in
-            try Int.fetchSet(db, sql: "SELECT DISTINCT phylumId FROM species")
+            try Int.fetchSet(db, sql: """
+                SELECT phylumId FROM species
+                UNION
+                SELECT phylumId FROM taxonGroup WHERE parentId IS NOT NULL
+                """)
         }
         let known = Set(Theme.allPhyla.map(\.id))
         #expect(ids.subtracting(known).isEmpty, "phylumId sans entrée : \(ids.subtracting(known))")

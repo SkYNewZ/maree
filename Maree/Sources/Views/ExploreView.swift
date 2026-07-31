@@ -44,7 +44,15 @@ struct GroupLabel: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            PhylumBadge(phylumId: group.phylumId)
+            // A root (Explore's own list) is a kingdom, not a phylum — it has
+            // none, so it draws no badge, rather than the neutral grey pastille
+            // every root but AUTRES used to share. The two contexts never share
+            // a screen (Explore lists roots only, GroupView lists non-root
+            // children only), so there is no in-list jump to guard against: text
+            // simply starts flush left on the root screen.
+            if group.parentId != nil {
+                PhylumBadge(phylumId: group.phylumId)
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text(group.name).foregroundStyle(Theme.ink)
                 HStack(spacing: 6) {
