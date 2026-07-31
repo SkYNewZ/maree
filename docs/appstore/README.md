@@ -13,3 +13,11 @@
 Restent hors de ce dépôt : compte Apple Developer (99 €/an), autorisation
 écrite du détenteur des droits sur les contenus, fiche App Store (description,
 mots-clés, catégorie, classification d'âge, statut DSA non-commerçant).
+
+Deux points se règlent dans App Store Connect, pas ici :
+
+- **Confidentialité de l'app** : le questionnaire est indépendant du manifeste —
+  répondre « aucune donnée collectée », sinon la soumission reste bloquée.
+- **Notes pour la revue** : les captures affichent la mention de source des
+  fiches ; joindre l'autorisation écrite pour couper court à une question sur
+  les droits.

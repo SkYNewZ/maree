@@ -48,8 +48,9 @@ targets:
         # This toolchain's Info.plist synthesis silently drops
         # INFOPLIST_KEY_UILaunchScreen_UIColorName (absent from its hardcoded key
         # list, unlike _Generation — verified against the built Info.plist and the
-        # key list in SWBCore). INFOPLIST_FILE merges in the one key it can't
-        # synthesise; see Support/LaunchScreenInfo.plist.
+        # key list in SWBCore). INFOPLIST_FILE merges in what it cannot
+        # synthesise — the launch screen colour and, for the same reason,
+        # ITSAppUsesNonExemptEncryption; see Support/LaunchScreenInfo.plist.
         INFOPLIST_FILE: Support/LaunchScreenInfo.plist
         INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
         TARGETED_DEVICE_FAMILY: "1"
