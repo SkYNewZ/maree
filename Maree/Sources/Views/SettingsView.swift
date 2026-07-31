@@ -70,7 +70,7 @@ struct SettingsView: View {
                     LabeledContent("Espèces", value: speciesCount)
                     Text("Fiches et photos : DORIS / FFESSM. Application personnelle, non affiliée.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.inkSoft)
                 }
                 .listRowBackground(Theme.surface)
             }
