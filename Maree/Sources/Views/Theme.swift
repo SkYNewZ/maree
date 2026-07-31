@@ -8,8 +8,13 @@ enum Theme {
     static let ink = Color("Ink")
     static let inkSoft = Color("InkSoft")
     static let rule = Color("Rule")
-    static let accent = Color("Accent")
     static let signal = Color("Signal")
+
+    // No `Theme.accent` constant: the "Accent" colour set drives the app's
+    // global tint (`ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME` in
+    // project.yml) — links, selection and every `Button` pick it up
+    // automatically. Nothing in Swift needs to read the value directly; add
+    // the constant back only if a view ever needs the raw colour.
 
     /// One entry per taxonomic phylum, plus the AUTRES root — two species hang
     /// straight off it and it has no children, so it is its own phylum.

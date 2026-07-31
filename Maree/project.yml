@@ -32,6 +32,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: fr.lemairepro.maree
         INFOPLIST_KEY_CFBundleDisplayName: Marée
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: Accent
         # This toolchain's Info.plist synthesis silently drops
         # INFOPLIST_KEY_UILaunchScreen_UIColorName (absent from its hardcoded key
         # list, unlike _Generation — verified against the built Info.plist and the
