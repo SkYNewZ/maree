@@ -3,18 +3,26 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 @.claude/rules/swift.md
-@docs/PRD.md
 
 ## Projet
 
 Marée : app iOS native SwiftUI de consultation hors-ligne des fiches DORIS/FFESSM.
-Le PRD importé ci-dessus est la référence produit — le critère n°1 y est défini :
-tout contenu doit être disponible hors ligne, sans condition.
+
+**Critère d'arbitrage n°1 : tout contenu doit être disponible hors ligne, sans
+condition.** Une fonctionnalité qui exige le réseau au moment de la plongée est hors
+sujet. Référence produit complète : `docs/PRD.md` (v1 validée, ses 11 US livrées) — à
+ouvrir quand une décision produit se pose, pas à charger par défaut.
 
 État : v1 implémentée (pipeline + app, 11 tâches), puis refonte visuelle
 (palette guide de terrain, code couleur par embranchement, icône). Le projet Xcode
 (`Maree/Maree.xcodeproj`) est **généré par XcodeGen** à partir de `Maree/project.yml`
 et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodeproj`.
+
+Hors périmètre v1, ne pas proposer : historique de consultation, filtres avancés,
+Spotlight, glossaire, bibliographie, carnet d'observations, appareil photo,
+géolocalisation, iPad, mode paysage, autre langue que le français. Image absente →
+espace réservé discret, jamais de spinner infini ni d'erreur bloquante ; base illisible
+au démarrage → arrêt net (défaut de build, pas un cas utilisateur).
 
 ## Architecture
 
