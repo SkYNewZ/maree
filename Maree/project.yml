@@ -4,6 +4,8 @@ options:
   deploymentTarget:
     iOS: "26.0"
   createIntermediateGroups: true
+  # Keeps LastUpgradeCheck current so Xcode stops proposing its settings upgrade.
+  xcodeVersion: "26.6"
 
 packages:
   GRDB:
@@ -17,6 +19,12 @@ settings:
     SWIFT_APPROACHABLE_CONCURRENCY: YES
     SWIFT_STRICT_CONCURRENCY: complete
     GENERATE_INFOPLIST_FILE: YES
+    # Xcode recommended settings (the .xcodeproj is regenerated, so they live here).
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    STRING_CATALOG_GENERATE_SYMBOLS: YES
+    # Free-provisioning signing (Personal Team), so regeneration keeps device deploys working.
+    CODE_SIGN_STYLE: Automatic
+    DEVELOPMENT_TEAM: QWT44GPUUT
 
 targets:
   Maree:
@@ -53,3 +61,12 @@ targets:
       - package: GRDB
     scheme:
       testTargets: [MareeTests]
+
+schemes:
+  # Device deployment: Release build on iPhone; the plain Maree scheme stays Debug.
+  Maree Release:
+    build:
+      targets:
+        Maree: all
+    run:
+      config: Release
