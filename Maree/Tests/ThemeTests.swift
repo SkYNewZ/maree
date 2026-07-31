@@ -85,10 +85,11 @@ struct ThemeTests {
         }
     }
 
-    @Test("un identifiant inconnu retourne l'entrée neutre au lieu de planter")
+    @Test("un identifiant inconnu retourne l'entrée neutre, dont le symbole ne collisionne avec aucune entrée de la table")
     func unknownIdFallsBack() {
         let neutral = Theme.phylum(999_999)
-        #expect(neutral.symbol == "circle.grid.cross")
+        #expect(neutral.id == 0)
+        #expect(!Theme.allPhyla.contains { $0.symbol == neutral.symbol })
     }
 
     /// Every id `Theme.phylum(_:)` is actually asked to resolve on screen: every

@@ -48,7 +48,12 @@ enum Theme {
     ]
 
     private static let byId = Dictionary(uniqueKeysWithValues: allPhyla.map { ($0.id, $0) })
-    private static let neutral = Phylum(id: 0, base: 0x5F5E5A, tint: 0xEDECEA, symbol: "circle.grid.cross")
+    // `circle.dashed` (SF Symbols since 2020, well within the iOS 26 floor):
+    // reused from nowhere in `allPhyla`. It used to be `circle.grid.cross`,
+    // silently identical to phylum 175's — two badges telling colour-blind
+    // users apart only by colour, and outside `symbolsAreDistinct`'s reach
+    // because `neutral` is not in `allPhyla`.
+    private static let neutral = Phylum(id: 0, base: 0x5F5E5A, tint: 0xEDECEA, symbol: "circle.dashed")
 
     /// Never optional: an unknown id renders neutrally rather than blanking a row.
     static func phylum(_ id: Int) -> Phylum { byId[id] ?? neutral }
