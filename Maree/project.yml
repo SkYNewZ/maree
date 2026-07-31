@@ -19,6 +19,8 @@ settings:
     SWIFT_APPROACHABLE_CONCURRENCY: YES
     SWIFT_STRICT_CONCURRENCY: complete
     GENERATE_INFOPLIST_FILE: YES
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: 1
     # Xcode recommended settings (the .xcodeproj is regenerated, so they live here).
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     STRING_CATALOG_GENERATE_SYMBOLS: YES
@@ -33,6 +35,8 @@ targets:
     sources:
       - path: Sources
       - path: Resources
+        buildPhase: resources
+      - path: Support/PrivacyInfo.xcprivacy
         buildPhase: resources
     dependencies:
       - package: GRDB
