@@ -16,11 +16,31 @@ tout contenu doit être disponible hors ligne, sans condition.
 (`Maree/Maree.xcodeproj`) est **généré par XcodeGen** à partir de `Maree/project.yml`
 et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodeproj`.
 
+## Architecture
+
+- `MareeApp` → `RootView` : quatre onglets (Rechercher, Explorer, Favoris, Réglages),
+  chacun avec sa propre `NavigationStack`. La navigation est **typée** par `enum Route`
+  et câblée une seule fois dans `.mareeDestinations()` — ajouter un écran = un cas dans
+  `Route` + un cas dans cette extension, jamais un `navigationDestination` ad hoc.
+- Données : `maree.db` (bundle, lecture seule) → `AppDatabase.shared.reader` →
+  `SpeciesRepository`, **seul** point d'accès SQL. Les vues ne manipulent que les structs
+  GRDB (`Species`, `Section`, `TaxonGroup`, `Zone`, `Photo`) et `SpeciesDetail` pour la
+  fiche. Aucune écriture : une MAJ DORIS = rejouer le pipeline et rebuilder.
+- Cinq dépendances injectées par `@Environment`, toutes des singletons `.shared` :
+  `repository`, `favorites` (UserDefaults), `imageStore` (cache disque + registre des
+  images absentes), `thumbnailPack` (pack de vignettes au premier lancement),
+  `tripPreparation` (préchargement « préparer une sortie »).
+- Images : `RemoteImage` demande une `ImageKind` à `ImageStore`, qui sert le cache disque
+  (Application Support, jamais purgé) ou télécharge depuis le bucket. `ThumbnailPack` et
+  `TripPreparation` partagent le même `BulkDownload`. Le travail bloquant (énumération de
+  répertoire, taille du cache) est `@concurrent nonisolated` pour quitter l'acteur principal.
+
 ## Commandes
 
 - Avant le premier build (dans cet ordre) :
   1. `node tools/prepare-db.mjs` — écrit `Maree/Resources/maree.db` (SQLite + FTS5,
-     ~19 Mo, gitignoré, régénéré à chaque run). Vérifier : `node tools/verify-db.mjs`.
+     ~19 Mo, gitignoré, régénéré à chaque run ; `--source=<chemin>` pour une autre
+     base). Vérifier : `node tools/verify-db.mjs`.
   2. `cd Maree && xcodegen generate` — (re)génère `Maree.xcodeproj` depuis `project.yml`.
 - Build/test : `cd Maree && xcodebuild test -scheme MareeTests -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` ;
   ou `/ios-simulator-skill` pour build, lancement et pilotage du simulateur.
@@ -29,6 +49,9 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
   `xcrun simctl ui <UDID> appearance dark` — remettre `medium` / `light` ensuite.
 - Tests du pipeline : `node --test 'tools/lib/*.test.mjs'` (la forme répertoire
   `node --test tools/lib/` est cassée sur ce build Node 26.5, échoue en `MODULE_NOT_FOUND`).
+- Une seule suite / un seul test : ajouter `-only-testing:MareeTests/ThemeTests` à la
+  commande `xcodebuild test` — l'identifiant est le **nom du type**, pas le libellé de
+  `@Suite("Thème")`. Côté Node : `node --test --test-name-pattern='<regex>' 'tools/lib/*.test.mjs'`.
 - Publier les vignettes : `node tools/generate-thumbs.mjs` (idempotent, `--force` pour
   republier). **Ce script écrit dans le bucket de production** : déjà exécuté pour le pack
   v1, il n'y a aucune raison de le relancer sans intention explicite. Pour l'exercer, passer
