@@ -11,7 +11,8 @@ Marée : app iOS native SwiftUI de consultation hors-ligne des fiches DORIS/FFES
 Le PRD importé ci-dessus est la référence produit — le critère n°1 y est défini :
 tout contenu doit être disponible hors ligne, sans condition.
 
-État : v1 implémentée (pipeline + app, 11 tâches). Le projet Xcode
+État : v1 implémentée (pipeline + app, 11 tâches), puis refonte visuelle
+(palette guide de terrain, code couleur par embranchement, icône). Le projet Xcode
 (`Maree/Maree.xcodeproj`) est **généré par XcodeGen** à partir de `Maree/project.yml`
 et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodeproj`.
 
@@ -23,6 +24,9 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
   2. `cd Maree && xcodegen generate` — (re)génère `Maree.xcodeproj` depuis `project.yml`.
 - Build/test : `cd Maree && xcodebuild test -scheme MareeTests -destination 'platform=iOS Simulator,name=iPhone 17 Pro'` ;
   ou `/ios-simulator-skill` pour build, lancement et pilotage du simulateur.
+- Vérifs d'accessibilité au simulateur (UDID via `xcrun simctl list devices booted`) :
+  `xcrun simctl ui <UDID> content_size accessibility-extra-extra-extra-large` et
+  `xcrun simctl ui <UDID> appearance dark` — remettre `medium` / `light` ensuite.
 - Tests du pipeline : `node --test 'tools/lib/*.test.mjs'` (la forme répertoire
   `node --test tools/lib/` est cassée sur ce build Node 26.5, échoue en `MODULE_NOT_FOUND`).
 - Publier les vignettes : `node tools/generate-thumbs.mjs` (idempotent, `--force` pour
@@ -50,6 +54,10 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
   le chemin d'affichage. « Revérifier les images » dans Réglages efface ce registre.
 - Filtre Europe : zones `1,2,3,5` → 2 837 fiches. Les 15 titres de `sectionFiche`
   forment une enum fermée.
+- Une **racine est un règne, pas un embranchement** : son `phylumId` est elle-même, et
+  des 5 racines seule `AUTRES` (177) figure dans `Theme.allPhyla`. `GroupLabel` ne
+  dessine donc pas de pastille quand `parentId IS NULL` — sinon 4 racines partagent la
+  même pastille grise. `tableCoversTheDatabase` exclut les racines pour la même raison.
 
 ## Décisions de nommage
 
@@ -66,6 +74,21 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
   une nouvelle instance (nouvelle connexion DB, nouveau pack de téléchargement...).
   Ce piège a coûté trois régressions pendant l'implémentation.
 
+## Palette et thème
+
+- `Maree/Sources/Views/Theme.swift` est la **seule** source de couleur : aucune vue
+  n'écrit de littéral. Les 7 couleurs nommées sont des Color Sets qui **s'adaptent**
+  clair/sombre, les 19 `base`/`tint` d'embranchement sont des hex **fixes**. Ne jamais
+  dessiner une couleur adaptative sur une couleur fixe : `Theme.ink` sur une teinte
+  figée a livré un badge illisible en sombre (~1,1:1). Les fonds de chips passent par
+  `Phylum.chipBackground` / `Theme.signalChip`, qui composent au-dessus de la page.
+- `ThemeTests` prend une **apparence** et boucle sur `[.light, .dark]` : un helper qui
+  ne résout que le clair laisse passer exactement ce bug. Ces tests comparent des paires
+  de couleurs, ils ne voient pas ce que `Badge` dessine réellement.
+- La couleur d'accent vient de l'asset catalog
+  (`ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: Accent`), **pas** du Swift : il n'y
+  a volontairement pas de `Theme.accent`.
+
 ## Pièges
 
 - Le dossier `Marée` est en NFD (accent) : **target, scheme et bundle id restent
@@ -76,3 +99,10 @@ et n'est pas commité (gitignoré) — éditer `project.yml`, jamais le `.xcodep
 - Free provisioning : profil 7 jours — dev au simulateur, l'iPhone n'est qu'une
   validation ponctuelle. Un seul bundle identifier (quota 10 App IDs / 7 jours).
   App Groups, push, CloudKit, widgets : indisponibles, ne pas en proposer.
+- Ce toolchain **ignore silencieusement** `INFOPLIST_KEY_UILaunchScreen_UIColorName`
+  (absent de la whitelist de `SWBCore`) : l'écran de lancement passe par
+  `Maree/Support/LaunchScreenInfo.plist` + `INFOPLIST_FILE`. Ne pas « simplifier » en
+  revenant à la clé, elle ne produit rien et le build reste vert.
+- Swift Testing : `@Test(arguments:)` évalue sa collection **hors** du corps du test,
+  donc elle ne peut pas contenir de `static let` isolé au MainActor (`Theme.ink` & co)
+  — « expression is 'async' but is not marked with 'await' ».
