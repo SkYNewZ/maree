@@ -18,6 +18,7 @@ struct SpeciesListView: View {
                             .frame(minHeight: proxy.size.height)
                     }
                 }
+                .foregroundStyle(Theme.inkSoft)
                 .background(Theme.paper)
             } else {
                 List(species) { item in
