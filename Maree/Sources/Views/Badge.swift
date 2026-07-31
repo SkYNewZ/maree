@@ -4,7 +4,15 @@ import SwiftUI
 /// background — see Task 5 owner ruling #1, the phylum/signal colours themselves
 /// fail AA as text in light mode, so only the background carries them. Shared by
 /// `FicheView` (group/status badges, gallery heading) and `FicheSections` (zone
-/// chips, every other section heading); guarded by `ThemeTests.badgeTextIsLegible`.
+/// chips, every other section heading). Backgrounds always come from
+/// `Phylum.chipBackground` or `Theme.signalChip` — never a literal opacity at
+/// the call site.
+///
+/// `ThemeTests.badgeTextIsLegible` asserts the contrast ratio of those two
+/// formulas against `Theme.ink` — the same formulas this view draws with, not a
+/// parallel copy of them. It cannot see what `Badge` actually renders on screen
+/// (that would need `ImageRenderer` pixel-sampling, deliberately out of scope);
+/// it guards the formula the background is built from, not the rendered pixels.
 struct Badge: View {
     let text: String
     let background: Color

@@ -120,25 +120,27 @@ struct ThemeTests {
     }
 
     /// Flattens a translucent colour over an opaque backdrop, the way UIKit
-    /// composites it on screen — `contrast(_:_:)` reads raw RGB and ignores
-    /// alpha, so a chip's true on-screen colour has to be pre-blended before
-    /// it is measured.
-    private func blend(_ foreground: Color, alpha: Double, over background: Color, appearance: UIUserInterfaceStyle) -> Color {
-        func components(_ color: Color) -> (r: CGFloat, g: CGFloat, b: CGFloat) {
+    /// composites it on screen — `contrast(_:_:appearance:)` reads raw RGB and
+    /// ignores alpha, so a chip's true on-screen colour has to be pre-blended
+    /// before it is measured. `foreground`'s own alpha channel drives the mix,
+    /// so passing `Phylum.chipBackground` or `Theme.signalChip` here blends with
+    /// whatever opacity that formula actually uses — not a copy of it.
+    private func blend(_ foreground: Color, over background: Color, appearance: UIUserInterfaceStyle) -> Color {
+        func components(_ color: Color) -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat) {
             let resolved = UIColor(color).resolvedColor(with: UITraitCollection(userInterfaceStyle: appearance))
             var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
             guard resolved.getRed(&r, green: &g, blue: &b, alpha: &a) else {
-                Issue.record("could not read RGB components of \(color)")
-                return (0, 0, 0)
+                Issue.record("could not read RGBA components of \(color)")
+                return (0, 0, 0, 1)
             }
-            return (r, g, b)
+            return (r, g, b, a)
         }
         let f = components(foreground)
         let b = components(background)
         return Color(
-            red: Double(f.r * alpha + b.r * (1 - alpha)),
-            green: Double(f.g * alpha + b.g * (1 - alpha)),
-            blue: Double(f.b * alpha + b.b * (1 - alpha))
+            red: Double(f.r * f.a + b.r * (1 - f.a)),
+            green: Double(f.g * f.a + b.g * (1 - f.a)),
+            blue: Double(f.b * f.a + b.b * (1 - f.a))
         )
     }
 
@@ -146,18 +148,19 @@ struct ThemeTests {
     /// `Theme.ink` as text, never the phylum or signal colour itself — the plan's
     /// original pairing (colour-as-text) measured as low as 2.78:1 in light mode.
     ///
-    /// The group-name chip's background formula (`phylum.base` at 0.15 alpha over
-    /// `Theme.paper`, not the old unblended `phylum.tint`) is explained at its call
-    /// site, `FicheView.swift`'s `badges(_:)` — this is the Task 7 fix round.
+    /// Measures `Phylum.chipBackground` and `Theme.signalChip` directly — the same
+    /// properties `FicheView` and `FicheSections` draw chip backgrounds with, not a
+    /// re-derived copy of their formula. Moving either property's opacity in
+    /// Theme.swift moves both the rendered chip and the ratio measured here.
     @Test("le texte des badges tient AA sur chaque teinte d'embranchement et sur le fond du chip signal")
     func badgeTextIsLegible() {
         for style in Self.appearances {
             for phylum in Theme.allPhyla {
-                let background = blend(phylum.base, alpha: 0.15, over: Theme.paper, appearance: style)
+                let background = blend(phylum.chipBackground, over: Theme.paper, appearance: style)
                 let ratio = contrast(Theme.ink, background, appearance: style)
                 #expect(ratio >= 4.5, "phylum \(phylum.id) group badge [\(style)]: \(ratio)")
             }
-            let signalChipBackground = blend(Theme.signal, alpha: 0.14, over: Theme.paper, appearance: style)
+            let signalChipBackground = blend(Theme.signalChip, over: Theme.paper, appearance: style)
             let ratio = contrast(Theme.ink, signalChipBackground, appearance: style)
             #expect(ratio >= 4.5, "signal chip [\(style)]: \(ratio)")
         }

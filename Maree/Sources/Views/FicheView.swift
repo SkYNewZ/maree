@@ -85,20 +85,17 @@ struct FicheView: View {
 
     private func badges(_ detail: SpeciesDetail) -> some View {
         HStack(spacing: 8) {
-            // `.base` at low alpha, not `.tint`: blending a fixed colour over the
-            // dynamic `Theme.paper` backdrop makes the composite itself dynamic — pale
-            // in light, dark in dark — so `Theme.ink` stays legible on it in both
-            // (`.tint` alone has no dark variant and dropped to ~1:1 against `Theme.ink`
-            // once that flipped to near-white in dark mode; see Task 7 fix round).
-            Badge(text: detail.group.name, background: Theme.phylum(detail.species.phylumId).base.opacity(0.15))
+            // Chip background formula (why `.base` at low alpha, not `.tint`) is
+            // explained on `Phylum.chipBackground`, in Theme.swift.
+            Badge(text: detail.group.name, background: Theme.phylum(detail.species.phylumId).chipBackground)
             // No status badge: « Publiée » on nearly every fiche is noise, and the
             // two that follow are the ones that matter under water.
-            if detail.species.regulated { Badge(text: "Réglementée", background: Theme.signal.opacity(0.14)) }
+            if detail.species.regulated { Badge(text: "Réglementée", background: Theme.signalChip) }
             // A warning should not look like a place name: same pale chip as the
             // group name and every zone, but with the glyph `SpeciesRow` already
             // uses for the same fact, so this one doesn't rely on colour alone.
             if detail.species.dangerous {
-                Badge(text: "Dangereuse", background: Theme.signal.opacity(0.14), icon: "exclamationmark.triangle.fill")
+                Badge(text: "Dangereuse", background: Theme.signalChip, icon: "exclamationmark.triangle.fill")
             }
         }
     }

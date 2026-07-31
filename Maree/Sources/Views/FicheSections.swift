@@ -89,7 +89,7 @@ struct FicheSections: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(detail.zones) { zone in
-                    Badge(text: zone.name, background: Theme.signal.opacity(0.14))
+                    Badge(text: zone.name, background: Theme.signalChip)
                 }
             }
         }

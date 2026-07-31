@@ -10,6 +10,11 @@ enum Theme {
     static let rule = Color("Rule")
     static let signal = Color("Signal")
 
+    /// Backdrop for the signal chips (réglementée / dangereuse / zone badges):
+    /// same low-alpha-over-paper rationale as `Phylum.chipBackground` below —
+    /// one formula, shared by every call site and by `ThemeTests`.
+    static let signalChip = signal.opacity(0.14)
+
     // No `Theme.accent` constant: the "Accent" colour set drives the app's
     // global tint (`ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME` in
     // project.yml) — links, selection and every `Button` pick it up
@@ -71,6 +76,16 @@ struct Phylum {
         self.tint = Color(hex: tint)
         self.symbol = symbol
     }
+
+    /// The pale backdrop for this phylum's chip (the group-name badge on the
+    /// fiche header): `base` at low alpha, not `tint`. Blending a fixed colour
+    /// over the dynamic `Theme.paper` backdrop makes the composite itself
+    /// dynamic — pale in light, dark in dark — so `Theme.ink` text stays
+    /// legible on it in both appearances (`tint` alone has no dark variant and
+    /// dropped to ~1:1 against `Theme.ink` once that flipped to near-white in
+    /// dark mode; Task 7 fix round). The one formula, used by the views and by
+    /// `ThemeTests.badgeTextIsLegible`.
+    var chipBackground: Color { base.opacity(0.15) }
 }
 
 private extension Color {
