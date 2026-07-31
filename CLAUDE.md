@@ -64,6 +64,9 @@ au démarrage → arrêt net (défaut de build, pas un cas utilisateur).
   republier). **Ce script écrit dans le bucket de production** : déjà exécuté pour le pack
   v1, il n'y a aucune raison de le relancer sans intention explicite. Pour l'exercer, passer
   un `--limit` (validé depuis qu'un `--limit=0` falsy a renvoyé ~100 objets par accident).
+- Captures App Store : `docs/appstore/` — brutes du simulateur dans `raw/`, planches
+  encadrées dans `final/`, procédure de rendu en tête de `template/render.js`, valeurs
+  App Store Connect dans `docs/appstore/README.md`.
 
 ## Données DORIS — particularités
 

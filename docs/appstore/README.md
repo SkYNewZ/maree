@@ -6,8 +6,9 @@
 - **Chiffrement** : `ITSAppUsesNonExemptEncryption = NO` (HTTPS uniquement)
 - **Manifeste** : `Maree/Support/PrivacyInfo.xcprivacy` — aucune collecte, UserDefaults `CA92.1`
 - **Captures 6,9″** : `final/01-rechercher.png` … `final/05-favoris.png` (1320×2868)
-- **Régénérer une capture** : refaire la brute (voir plan, Task 2) puis rendre
-  `template/frame.html?shot=…&title=…` en 660×1434 @2x via playwright.
+- **Régénérer une capture** : refaire la brute (voir plan, Task 2) puis relancer
+  `template/render.js` — sa procédure exacte est en tête du fichier, et
+  `&plate=<nom>` limite le rendu à une seule planche.
 
 Restent hors de ce dépôt : compte Apple Developer (99 €/an), autorisation
 écrite du détenteur des droits sur les contenus, fiche App Store (description,

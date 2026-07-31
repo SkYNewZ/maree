@@ -5,6 +5,10 @@
 //   npx playwright-cli goto "http://localhost:8791/template/frame.html?out=$PWD/final"
 //   npx playwright-cli run-code --filename=template/render.js
 //
+// Add &plate=02-fiche to the goto URL to reshoot a single plate; without it all
+// five are rewritten, which reshuffles the PNG bytes of the four you did not
+// touch.
+//
 // Two constraints shape that dance. playwright-cli blocks the file: protocol,
 // hence the throwaway HTTP server; and run-code runs in a sandbox with no
 // __dirname, no require and no process, so the absolute output directory has
@@ -20,6 +24,8 @@ async page => {
   const out = decodeURIComponent((opened.match(/[?&]out=([^&]*)/) || [])[1] || '');
   if (!out) throw new Error('open the template with ?out=<absolute final/ dir>');
 
+  const only = decodeURIComponent((opened.match(/[?&]plate=([^&]*)/) || [])[1] || '');
+
   const plates = [
     ['01-rechercher', 'La recherche instantanée, même sans réseau'],
     ['02-fiche', 'Des fiches complètes et illustrées'],
@@ -28,7 +34,9 @@ async page => {
     ['03-explorer', 'Explorez les espèces par groupe'],
     ['04-galerie', 'Les photos en pleine page'],
     ['05-favoris', 'Vos espèces toujours à portée'],
-  ];
+  ].filter(([name]) => !only || name === only);
+
+  if (!plates.length) throw new Error(`no plate named ${only}`);
 
   const context = await page.context().browser().newContext({
     viewport: { width: 660, height: 1434 },
