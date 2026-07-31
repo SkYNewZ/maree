@@ -94,7 +94,12 @@ struct FicheView: View {
             // No status badge: « Publiée » on nearly every fiche is noise, and the
             // two that follow are the ones that matter under water.
             if detail.species.regulated { Badge(text: "Réglementée", background: Theme.signal.opacity(0.14)) }
-            if detail.species.dangerous { Badge(text: "Dangereuse", background: Theme.signal.opacity(0.14)) }
+            // A warning should not look like a place name: same pale chip as the
+            // group name and every zone, but with the glyph `SpeciesRow` already
+            // uses for the same fact, so this one doesn't rely on colour alone.
+            if detail.species.dangerous {
+                Badge(text: "Dangereuse", background: Theme.signal.opacity(0.14), icon: "exclamationmark.triangle.fill")
+            }
         }
     }
 

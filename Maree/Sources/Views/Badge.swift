@@ -8,14 +8,20 @@ import SwiftUI
 struct Badge: View {
     let text: String
     let background: Color
+    var icon: String?
 
     var body: some View {
-        Text(text)
-            .font(.caption.weight(.medium))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(background, in: .capsule)
-            .foregroundStyle(Theme.ink)
+        HStack(spacing: 4) {
+            if let icon {
+                Image(systemName: icon)
+            }
+            Text(text)
+        }
+        .font(.caption.weight(.medium))
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(background, in: .capsule)
+        .foregroundStyle(Theme.ink)
     }
 }
 
