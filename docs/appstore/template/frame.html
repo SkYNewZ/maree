@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Marée — planche App Store</title>
+<style>
+  :root {
+    /* Light-mode values copied from Maree/Resources/Assets.xcassets — a static
+       page cannot read a colorset. Repaint the app, repaint these. */
+    --paper: #FBF7EF; --paper-deep: #F3ECDE; --surface: #FFFDF8;
+    --ink: #2E2415; --accent: #1F4D5C;
+
+    /* One number drives the whole composition: the screen width. The capture
+       is 1320x2868, so its height follows (ratio 2.17273) and the corner
+       radius tracks the device's own (55 pt on a 440 pt-wide screen). */
+    --screen-w: 486px;
+    --bezel: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 660px; height: 1434px;
+    display: flex; flex-direction: column; align-items: center;
+    background:
+      radial-gradient(115% 70% at 50% -8%, var(--surface) 0%, var(--paper) 48%, var(--paper-deep) 100%);
+    font-family: Baskerville, "Iowan Old Style", "Hoefler Text", Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Paper grain. Self-contained SVG turbulence, kept just above the threshold
+     of noticing — it stops the flat fill from reading as a web page. */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none;
+    opacity: 0.05; mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  header { padding-top: 58px; text-align: center; }
+
+  header img {
+    width: 46px; height: 46px; border-radius: 22.4%;
+    box-shadow: 0 2px 6px rgb(46 36 21 / 0.16);
+  }
+
+  /* Fixed height, title centred inside: one-line and two-line titles put the
+     device at the same y across all five plates. */
+  .headline {
+    height: 98px; margin-top: 20px;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  h1 {
+    max-width: 500px;
+    color: var(--ink);
+    font-size: 40px; font-weight: 600; line-height: 1.22;
+    letter-spacing: -0.004em; text-wrap: balance;
+  }
+
+  /* Caption rule of a naturalist plate — the one ornament on the page. */
+  .rule {
+    width: 54px; height: 2px; margin: 26px auto 0;
+    background: var(--accent); opacity: 0.55;
+  }
+
+  main { flex: 1; display: flex; justify-content: center; padding-top: 42px; }
+
+  .device {
+    align-self: flex-start;
+    padding: var(--bezel);
+    background: var(--ink);
+    border-radius: calc(0.125 * var(--screen-w) + var(--bezel));
+    box-shadow:
+      0 30px 70px -20px rgb(46 36 21 / 0.38),
+      0 8px 20px rgb(46 36 21 / 0.12),
+      inset 0 0 0 1px rgb(255 253 248 / 0.10);
+  }
+
+  .screen {
+    position: relative;
+    width: var(--screen-w);
+    border-radius: calc(0.125 * var(--screen-w));
+    overflow: hidden;
+    background: var(--surface);
+  }
+
+  /* Hairline of glass. Without it the black gallery capture melts into the
+     bezel and the device loses its edge. */
+  .screen::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgb(255 253 248 / 0.16);
+  }
+
+  .screen img { display: block; width: 100%; }
+</style>
+</head>
+<body>
+  <header>
+    <!-- Copy of Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png. -->
+    <img src="app-icon.png" alt="">
+    <div class="headline"><h1 id="title"></h1></div>
+    <div class="rule"></div>
+  </header>
+  <main>
+    <div class="device"><div class="screen"><img id="shot" alt=""></div></div>
+  </main>
+  <script>
+    const p = new URLSearchParams(location.search);
+    document.getElementById('title').textContent = p.get('title') ?? '';
+    const shot = document.getElementById('shot');
+    shot.src = p.get('shot') ?? '';
+    shot.alt = p.get('title') ?? '';
+  </script>
+</body>
+</html>
