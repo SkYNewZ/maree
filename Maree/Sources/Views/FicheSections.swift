@@ -70,14 +70,6 @@ struct FicheSections: View {
         .padding(.horizontal)
     }
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(.caption.weight(.semibold))
-            .textCase(.uppercase)
-            .tracking(0.8)
-            .foregroundStyle(Theme.inkSoft)
-    }
-
     private var hasMeasurements: Bool {
         detail.species.depthRange != nil || detail.species.temperatureRange != nil
     }

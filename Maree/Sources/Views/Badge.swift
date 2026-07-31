@@ -1,0 +1,31 @@
+import SwiftUI
+
+/// One small chip, one rule for all of them: `Theme.ink` text over a caller-chosen
+/// background — see Task 5 owner ruling #1, the phylum/signal colours themselves
+/// fail AA as text in light mode, so only the background carries them. Shared by
+/// `FicheView` (group/status badges, gallery heading) and `FicheSections` (zone
+/// chips, every other section heading); guarded by `ThemeTests.badgeTextIsLegible`.
+struct Badge: View {
+    let text: String
+    let background: Color
+
+    var body: some View {
+        Text(text)
+            .font(.caption.weight(.medium))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(background, in: .capsule)
+            .foregroundStyle(Theme.ink)
+    }
+}
+
+/// The small caption heading used above every fiche section, including the
+/// gallery — which used to draw its own `.headline` instead of matching the
+/// rest of the screen (Task 7 fix round).
+func sectionTitle(_ title: String) -> some View {
+    Text(title)
+        .font(.caption.weight(.semibold))
+        .textCase(.uppercase)
+        .tracking(0.8)
+        .foregroundStyle(Theme.inkSoft)
+}

@@ -102,7 +102,7 @@ struct FicheView: View {
         Group {
             if detail.photos.count > 1 {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Galerie").font(.headline).padding(.horizontal)
+                    sectionTitle("Galerie").padding(.horizontal)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
                             ForEach(detail.photos) { photo in
@@ -134,22 +134,5 @@ struct FicheView: View {
         .font(.footnote)
         .foregroundStyle(Theme.inkSoft)
         .padding(.horizontal)
-    }
-}
-
-/// One small chip, one rule for all of them: `Theme.ink` text over a caller-chosen
-/// background — see Task 5 owner ruling #1, the phylum/signal colours themselves
-/// fail AA as text in light mode, so only the background carries them.
-struct Badge: View {
-    let text: String
-    let background: Color
-
-    var body: some View {
-        Text(text)
-            .font(.caption.weight(.medium))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(background, in: .capsule)
-            .foregroundStyle(Theme.ink)
     }
 }
